@@ -169,14 +169,13 @@ export default function SponsorCard({
         <p className="sp-lede">{pick(d.tagline, lang)}</p>
       </header>
 
-      <section className="sp-qrs" data-multi={d.qr.length > 1 ? '1' : undefined}>
+      <section className="sp-qrs">
         {d.qr.map((q, i) => {
           const label = pick(q.label, lang);
           return (
             <figure className="sp-card" key={q.key || i} style={{ '--sp-accent': q.accent }}>
               <div className="sp-card-head">
                 <span className="sp-chip"><Icon.Qr /><span>{label}</span></span>
-                <span className="sp-hint">{t.hint}</span>
               </div>
               <button
                 type="button"
@@ -187,34 +186,22 @@ export default function SponsorCard({
                 <img src={q.src} alt={fill(t.altOf, label)} loading="lazy" decoding="async" />
                 <span className="sp-zoom"><Icon.Expand /></span>
               </button>
-              <figcaption className="sp-cap">
-                <strong>{label}</strong>
-                <span>{pick(q.tip, lang)}</span>
-              </figcaption>
             </figure>
           );
         })}
-      </section>
-
-      <section className="sp-links-wrap">
-        <h2 className="sp-links-title">{t.linksTitle}</h2>
-        {d.links.length ? (
-          <div className="sp-links">
-            {d.links.map((l) => (
-              <a
-                className="sp-link"
-                key={l.url}
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="sp-link-label">{l.label}</span>
-                <span className="sp-link-sub">{l.sub}</span>
-                <span className="sp-link-ic"><Icon.Link /></span>
-              </a>
-            ))}
-          </div>
-        ) : (
+        {d.links.length ? d.links.map((l) => (
+          <a
+            className="sp-link"
+            key={l.url}
+            href={l.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="sp-link-ic"><Icon.Link /></span>
+            <span className="sp-link-label">{l.label}</span>
+            <span className="sp-link-sub">{l.sub}</span>
+          </a>
+        )) : (
           <p className="sp-empty" dangerouslySetInnerHTML={{ __html: t.empty }} />
         )}
       </section>

@@ -21,6 +21,7 @@ import { GEN_URL, UI, MD, buildModel, pick, qrText, fill } from './lib/model.mjs
 import { renderReact } from './render-react.mjs';
 import { renderVue } from './render-vue.mjs';
 import { renderSourceHtml } from './render-source.mjs';
+import { cropQr } from './lib/qrcrop.mjs';
 
 // ─────────────────────────────────────────────────────────────── 常量
 
@@ -68,7 +69,7 @@ function parseArgs(argv) {
     if (!a.startsWith('--')) continue;
     const key = a.slice(2);
     if (key === 'help') { out.help = true; continue; }
-    if (key === 'standalone' || key === 'dry-run' || key === 'no-readme' || key === 'no-optimize' || key === 'force') {
+    if (key === 'standalone' || key === 'dry-run' || key === 'no-readme' || key === 'no-optimize' || key === 'skip-crop' || key === 'force') {
       out[camel(key)] = true; continue;
     }
     // --qr 可重复
@@ -124,6 +125,7 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --components-dir <目录>  组件输出目录（默认同 --out 根目录）
   --no-readme              不写入 README
   --no-optimize            不压缩图片，原样拷贝
+  --skip-crop              跳过二维码自动裁剪（默认检测到二维码会裁出主体，视觉统一）
   --dry-run                只打印将要做什么，不落盘
   --force                  覆盖已存在的图片（默认也会覆盖，此开关仅语义明确）
 
@@ -221,6 +223,7 @@ function buildOptions(args) {
     max: Number(args.max || cfg.max || 800),
     style: args.style || cfg.style || 'card',
     standalone: !!args.standalone || !!cfg.standalone,
+    skipCrop: !!args.skipCrop || !!cfg.skipCrop,
     noReadme: !!args.noReadme,
     noOptimize: !!args.noOptimize,
     noComponents: !!args.noComponents || !!cfg.noComponents,
@@ -494,30 +497,25 @@ function renderHtml(opt, qrList, model) {
 
   // 首屏直接按默认语言渲染出静态内容（无 JS 也能看），再由脚本按需切换
   const cards = qrList.map((q, i) => {
-    const { label, tip } = qrText(q, lang);
+    const { label } = qrText(q, lang);
     return `
       <figure class="card" data-i="${i}" style="--accent:${q.accent}">
         <div class="card-head">
           <span class="chip">${ICON.qr}<span data-slot="chip">${esc(label)}</span></span>
-          <span class="hint">${esc(t.hint)}</span>
         </div>
         <button class="qr" type="button" data-label="${esc(label)}" aria-label="${esc(fill(t.zoomOf, label))}">
           <img src="${q.cSrc}" alt="${esc(fill(t.altOf, label))}" loading="lazy" decoding="async">
           <span class="zoom">${ICON.expand}</span>
         </button>
-        <figcaption>
-          <strong data-slot="cap-label">${esc(label)}</strong>
-          <span data-slot="cap-tip">${esc(tip)}</span>
-        </figcaption>
       </figure>`;
   }).join('\n');
 
   const buttons = model.links.length
     ? model.links.map(l => `
         <a class="link" style="--accent:${l.accent}" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">
+          <span class="link-icon">${ICON.link}</span>
           <span class="link-label">${esc(l.label)}</span>
           <span class="link-sub">${esc(l.sub)}</span>
-          <span class="link-icon">${ICON.link}</span>
         </a>`).join('\n')
     : `<p class="empty">${t.empty}</p>`;
 
@@ -569,15 +567,9 @@ ${css}
     <p class="lede" data-slot="tagline">${esc(L0('tagline'))}</p>
   </header>
 
-  <section class="qrs${qrList.length > 1 ? ' multi' : ''}">
+  <section class="qrs">
 ${cards}
-  </section>
-
-  <section class="links-wrap">
-    <h2 data-slot="links-title">${esc(t.linksTitle)}</h2>
-    <div class="links">
 ${buttons}
-    </div>
   </section>
 
   ${L0('note') ? `<p class="note" data-slot="note">${esc(L0('note'))}</p>` : ''}
@@ -773,115 +765,109 @@ function cssCard() {
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0; padding:clamp(34px,6vw,56px) clamp(15px,4vw,20px) clamp(48px,7vw,72px); color:var(--ink);
-  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  margin:0; padding:clamp(22px,4vw,36px) clamp(14px,3vw,18px) clamp(34px,5vw,52px); color:var(--ink);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   background:var(--bg); background-attachment:fixed;
   min-height:100vh; transition:color .2s;
 }
-.wrap{max-width:860px;margin:0 auto}
+.wrap{max-width:720px;margin:0 auto}
 
-.hero{text-align:center;margin-bottom:38px}
+.hero{text-align:center;margin-bottom:20px}
 .badge{
-  display:inline-flex;align-items:center;gap:7px;
-  font-size:11.5px;font-weight:700;letter-spacing:.16em;
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10.5px;font-weight:700;letter-spacing:.16em;
   color:var(--badge-fg);background:var(--badge-bg);border:1px solid var(--badge-line);
-  padding:6px 14px;border-radius:999px;
+  padding:4px 11px;border-radius:999px;
 }
-.badge svg{width:14px;height:14px}
-.hero h1{font-size:clamp(26px,4.2vw,36px);line-height:1.25;margin:18px 0 10px;letter-spacing:-.01em}
-.lede{margin:0;color:var(--ink2);font-size:16.5px}
+.badge svg{width:12px;height:12px}
+.hero h1{font-size:clamp(19px,3vw,25px);line-height:1.3;margin:10px 0 5px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--ink2);font-size:13.5px}
 
-.qrs{display:grid;gap:22px;grid-template-columns:1fr;justify-items:center}
-/* min() 是关键：没有它，320px 窄屏上 minmax(250px,1fr) 会撑出横向滚动 */
-@media(min-width:640px){.qrs.multi{grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));justify-items:stretch}}
+/* 所有赞助方式（码 + 链接）通栏一行，窄屏自动换行 */
+.qrs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:stretch}
 
 .card{
   --accent:#10C8A1;
-  position:relative;margin:0;width:100%;max-width:340px;
-  background:var(--card);border:1px solid var(--line);border-radius:22px;
-  box-shadow:var(--shadow);padding:20px 20px 18px;
-  display:flex;flex-direction:column;gap:14px;
-  transition:transform .22s cubic-bezier(.2,.7,.3,1),box-shadow .22s;
+  position:relative;margin:0;width:200px;max-width:100%;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:10px;
+  display:flex;flex-direction:column;gap:7px;
+  transition:transform .18s,box-shadow .18s;
   overflow:hidden;
 }
 .card::before{
-  content:"";position:absolute;inset:0 0 auto;height:5px;
+  content:"";position:absolute;inset:0 0 auto;height:3px;
   background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 45%,var(--card)));
 }
-.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hi)}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
 
-.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-head{display:flex;align-items:center;gap:8px}
 .chip{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:13px;font-weight:650;
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;font-weight:650;
   color:var(--chip-fg);background:var(--chip-bg);border:1px solid var(--chip-line);
-  padding:5px 11px;border-radius:999px;
+  padding:3px 9px;border-radius:999px;
 }
-.chip svg{width:15px;height:15px}
-.hint{font-size:12px;color:var(--ink3);white-space:nowrap}
+.chip svg{width:12px;height:12px}
+.hint{font-size:10.5px;color:var(--ink3);white-space:nowrap}
 
 .qr{
-  position:relative;display:block;width:100%;padding:12px;margin:0;cursor:zoom-in;
-  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:16px;
+  position:relative;display:block;width:100%;padding:7px;margin:0;cursor:zoom-in;
+  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:10px;
   transition:border-color .2s,box-shadow .2s;
 }
-.qr:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--qr-line));box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent)}
-.qr:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.qr img{display:block;width:100%;height:auto;border-radius:8px}
+.qr:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--qr-line));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.qr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.qr img{display:block;width:100%;height:auto;border-radius:5px}
 .zoom{
-  position:absolute;right:20px;bottom:20px;width:30px;height:30px;border-radius:9px;
+  position:absolute;right:12px;bottom:12px;width:26px;height:26px;border-radius:8px;
   display:grid;place-items:center;color:#fff;background:rgba(15,27,45,.55);
   backdrop-filter:blur(6px);opacity:0;transition:opacity .2s;
 }
-.zoom svg{width:16px;height:16px}
+.zoom svg{width:14px;height:14px}
 .qr:hover .zoom{opacity:1}
 
-.card figcaption{display:flex;flex-direction:column;gap:2px;text-align:center}
-.card figcaption strong{font-size:15px;letter-spacing:.01em}
-.card figcaption span{font-size:13px;color:var(--ink2)}
-
-.links-wrap{margin-top:44px}
-.links-wrap h2{
-  font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink3);margin:0 0 14px;text-align:center;
-}
-.links{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
+/* 链接项与码卡同款卡片外观：同宽、等高（随行内最高者）、同装饰 */
 .link{
   --accent:#10C8A1;
-  position:relative;display:flex;align-items:center;gap:12px;
-  padding:14px 16px;text-decoration:none;color:var(--ink);
-  background:var(--card);border:1px solid var(--line);border-radius:15px;
-  box-shadow:0 1px 2px rgba(16,32,56,.04);
-  transition:transform .18s,border-color .18s,box-shadow .18s,background .18s;
+  position:relative;margin:0;width:200px;max-width:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:10px;text-decoration:none;color:var(--ink);text-align:center;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);
+  transition:transform .18s,box-shadow .18s;
+  overflow:hidden;
 }
-.link::after{content:"";position:absolute;left:16px;right:16px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent);opacity:0;transition:opacity .18s}
-.link:hover{transform:translateY(-2px);background:var(--card-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));box-shadow:0 10px 24px -14px rgba(16,32,56,.45)}
-.link:hover::after{opacity:1}
+.link::before{
+  content:"";position:absolute;inset:0 0 auto;height:3px;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 45%,var(--card)));
+}
+.link:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
 .link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.link-label{font-weight:650;font-size:14.5px}
-.link-sub{font-size:12.5px;color:var(--ink2);margin-left:auto;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.link-icon{width:17px;height:17px;color:var(--accent);flex:none}
+.link-label{font-weight:650;font-size:14px}
+.link-sub{font-size:11.5px;color:var(--ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-icon{width:18px;height:18px;color:var(--accent);margin-bottom:3px}
 .link-icon svg{width:100%;height:100%}
-.empty{color:var(--ink2);text-align:center}
+.empty{flex-basis:100%;color:var(--ink2);text-align:center}
 .empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-size:13.5px}
 
-.note{margin:28px 0 0;text-align:center;color:var(--ink2);font-size:14px}
-.foot{margin-top:40px;text-align:center;font-size:13px;color:var(--ink3)}
+.note{margin:16px 0 0;text-align:center;color:var(--ink2);font-size:12.5px}
+.foot{margin-top:22px;text-align:center;font-size:12px;color:var(--ink3)}
 .foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
 .foot a:hover{color:var(--ink)}
 
-.tools{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px}
+.tools{position:fixed;top:14px;right:14px;z-index:20;display:flex;gap:7px}
 @media (max-width:520px){.tools{top:10px;right:10px;gap:6px}}
 .icon-btn{
-  width:38px;height:38px;border-radius:12px;padding:0;
+  width:32px;height:32px;border-radius:10px;padding:0;
   display:grid;place-items:center;cursor:pointer;color:var(--ink2);
   background:var(--ui-bg);border:1px solid var(--ui-line);
   backdrop-filter:blur(10px);box-shadow:0 4px 14px -8px rgba(16,32,56,.5);
-  font-family:inherit;font-size:12.5px;font-weight:700;letter-spacing:.02em;
+  font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.02em;
 }
-@media (max-width:520px){.icon-btn{width:34px;height:34px}}
+@media (max-width:520px){.icon-btn{width:30px;height:30px}}
 .icon-btn:hover{color:var(--ink)}
-.icon-btn svg{width:18px;height:18px}
+.icon-btn svg{width:15px;height:15px}
 .icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .lightbox{
@@ -909,7 +895,7 @@ body{
   body{background:#fff;padding:0}
   .card,.link{box-shadow:none;break-inside:avoid;background:#fff}
   .qr{cursor:default}
-  .hint,.zoom,.foot,.tools{display:none}
+  .zoom,.foot,.tools{display:none}
   .lightbox{display:none}
 }
 .icon-btn .ic-moon{display:none}
@@ -922,12 +908,10 @@ body{
 
 /* ── 响应式：窄屏收边距、卡片变紧凑、副标题不再挤压 ── */
 @media (max-width:520px){
-  body{padding:36px 15px 52px}
-  .hero{margin-bottom:26px}
-  .card{padding:16px 16px 14px;border-radius:18px}
-  .link{padding:13px 14px}
-  .link-sub{max-width:48%;font-size:12px}
-  .links-wrap{margin-top:32px}
+  body{padding:22px 12px 38px}
+  .hero{margin-bottom:16px}
+  .card{padding:9px;border-radius:12px}
+  .link{padding:7px 10px}
   .lightbox{padding:20px}
   .lb-close{top:14px;right:16px}
 }`;
@@ -976,10 +960,6 @@ body{
 .qr:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .qr img{display:block;width:100%;height:auto;border-radius:11px}
 .zoom{display:none}
-.card figcaption{text-align:center;display:flex;flex-direction:column;gap:2px}
-.card figcaption strong{font-size:14px;font-weight:600;color:var(--chip-fg)}
-.card figcaption span{font-size:12.5px;color:var(--ink2)}
-.links-wrap h2{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);text-align:center;margin:0 0 16px}
 .links{display:flex;flex-direction:column;border-top:1px solid var(--line)}
 .link{display:flex;align-items:center;gap:12px;padding:14px 4px;text-decoration:none;color:var(--ink);border-bottom:1px solid var(--line);transition:background .16s}
 .link:hover{background:var(--card-soft)}
@@ -1001,7 +981,7 @@ body{
 .lightbox img{max-width:min(420px,86vw);max-height:76vh;background:#fff;padding:12px;border-radius:16px}
 .lb-cap{color:#e8eef7;margin:0;font-size:14px}
 .lb-close{position:absolute;top:20px;right:22px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer}
-@media print{body{padding:0;background:#fff}.foot,.links-wrap,.tools{display:none}.qr{cursor:default}}
+@media print{body{padding:0;background:#fff}.foot,.tools{display:none}.qr{cursor:default}}
 @media (max-width:520px){body{padding:36px 15px 44px}.tools{top:10px;right:10px}.icon-btn{width:34px;height:34px}.qrs{gap:28px}}
 .icon-btn .ic-moon{display:none}
 :root[data-theme="dark"] .icon-btn .ic-sun{display:none}
@@ -1072,6 +1052,12 @@ function main() {
       }
       continue;
     }
+    // 自动裁剪：海报类原图裁出二维码主体（多码视觉统一）；检不出/已紧凑则原样走旧管线
+    let cropNote = '';
+    if (!opt.skipCrop && !opt.noOptimize && hasSips()) {
+      const c = cropQr(q.abs);
+      if (c) { q.abs = c.dest; q.cropped = true; cropNote = `  ✓ 已裁出二维码（占原图 ${Math.round(c.ratio * 100)}%）`; }
+    }
     const r = optimizeImage(q.abs, destDir, q.baseName, opt.max, opt.noOptimize, opt.dryRun);
     q.destName = path.basename(r.dest);
     q.before = r.before; q.after = r.after; q.inPlace = r.inPlace;
@@ -1080,8 +1066,8 @@ function main() {
       fs.copyFileSync(r.dest, path.join(pagesDir, q.destName));
     }
   }
-  // md 里的展示宽度：图多了收窄，避免一行换行难看
-  const width = qrList.length > 2 ? 180 : 220;
+  // md 里的展示宽度：裁剪后是紧凑方块图，整体压小保持低调
+  const width = qrList.length > 2 ? 130 : 160;
   for (const q of qrList) q.mdWidth = width;
 
   // 三种产物共用同一份 src：--standalone 时是 base64，否则是相对路径
@@ -1144,7 +1130,7 @@ function main() {
   for (const q of qrList) {
     const dst = rel(path.join(destDir, q.destName));
     const arrow = q.reuse || q.inPlace ? '沿用已有' : `${kb(q.before)} → ${kb(q.after)}`;
-    console.log(`  ✓ ${q.label.padEnd(8)} ${dst}  ${arrow}`);
+    console.log(`  ✓ ${q.label.padEnd(8)} ${dst}  ${arrow}${q.cropped ? '  （已自动裁出二维码）' : ''}`);
   }
   console.log(`  ✓ FUNDING.yml        ${rel(path.join(opt.out, '.github', 'FUNDING.yml'))}`);
   console.log(`  ✓ SPONSORS.md        ${rel(path.join(opt.out, 'SPONSORS.md'))}`);

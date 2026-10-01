@@ -53,7 +53,7 @@ export function renderVue(opt, model) {
       <p class="sp-lede">{{ pick(d.tagline, lang) }}</p>
     </header>
 
-    <section class="sp-qrs" :data-multi="d.qr.length > 1 ? '1' : null">
+    <section class="sp-qrs">
       <figure
         v-for="(q, i) in d.qr"
         :key="q.key || i"
@@ -62,7 +62,6 @@ export function renderVue(opt, model) {
       >
         <div class="sp-card-head">
           <span class="sp-chip">${SVG.qr}<span>{{ pick(q.label, lang) }}</span></span>
-          <span class="sp-hint">{{ t.hint }}</span>
         </div>
         <button
           type="button"
@@ -73,30 +72,21 @@ export function renderVue(opt, model) {
           <img :src="q.src" :alt="fill(t.altOf, pick(q.label, lang))" loading="lazy" decoding="async">
           <span class="sp-zoom">${SVG.expand}</span>
         </button>
-        <figcaption class="sp-cap">
-          <strong>{{ pick(q.label, lang) }}</strong>
-          <span>{{ pick(q.tip, lang) }}</span>
-        </figcaption>
       </figure>
-    </section>
 
-    <section class="sp-links-wrap">
-      <h2 class="sp-links-title">{{ t.linksTitle }}</h2>
-      <div v-if="d.links.length" class="sp-links">
-        <a
-          v-for="l in d.links"
-          :key="l.url"
-          class="sp-link"
-          :href="l.url"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span class="sp-link-label">{{ l.label }}</span>
-          <span class="sp-link-sub">{{ l.sub }}</span>
-          <span class="sp-link-ic">${SVG.link}</span>
-        </a>
-      </div>
-      <p v-else class="sp-empty" v-html="t.empty"></p>
+      <a
+        v-for="l in d.links"
+        :key="l.url"
+        class="sp-link"
+        :href="l.url"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="sp-link-ic">${SVG.link}</span>
+        <span class="sp-link-label">{{ l.label }}</span>
+        <span class="sp-link-sub">{{ l.sub }}</span>
+      </a>
+      <p v-if="!d.links.length" class="sp-empty" v-html="t.empty"></p>
     </section>
 
     <p v-if="note" class="sp-note">{{ note }}</p>

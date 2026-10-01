@@ -6,7 +6,7 @@
 
 <!-- sponsors:start -->
 <p align="center">
-  <img src=".github/sponsor/alipay.jpg" width="220" alt="支付宝收款码">&nbsp;&nbsp;&nbsp;<img src=".github/sponsor/wechat.jpg" width="220" alt="微信收款码">
+  <img src=".github/sponsor/alipay.jpg" width="160" alt="支付宝收款码">&nbsp;&nbsp;&nbsp;<img src=".github/sponsor/wechat.jpg" width="160" alt="微信收款码">
 </p>
 
 <p align="center"><sub>打开支付宝「扫一扫」 · 打开微信「扫一扫」</sub></p>

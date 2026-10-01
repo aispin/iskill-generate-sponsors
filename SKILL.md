@@ -1,6 +1,6 @@
 ---
 name: iskill-generate-sponsors
-summary: 把一张收款码图片（微信/支付宝/PayPal/任意）变成一整套可直接用的赞助页——.github/FUNDING.yml（GitHub 右上角 Sponsor 按钮）+ 可粘进任何 Markdown 的 SPONSORS.md 区块 + 响应式中英双语 sponsors.html + 零依赖 scoped 样式的 React/Vue 组件。零三方依赖，图片自动压缩，README 区块可重复运行覆盖。
+summary: 把一张收款码图片（微信/支付宝/PayPal/任意）变成一整套可直接用的赞助页——.github/FUNDING.yml（GitHub 右上角 Sponsor 按钮）+ 可粘进任何 Markdown 的 SPONSORS.md 区块 + 响应式中英双语 sponsors.html + 零依赖 scoped 样式的 React/Vue 组件。零三方依赖，二维码自动裁剪 + 图片自动压缩，排版紧凑低调，README 区块可重复运行覆盖。
 description: 当用户想给自己的开源项目/仓库/文档加「赞赏」「赞助」「打赏」「收款码」「赞助按钮」时使用。触发词：赞赏、赞助、打赏、收款码、赞助页、FUNDING.yml、Sponsor 按钮、buy me a coffee、ko-fi、paypal.me、liberapay、给项目加个赞赏。输入微信/支付宝静态收款码图片（或任何用户提供的图片），输出 md + html（响应式、中英双语切换）+ React/Vue 组件 + FUNDING.yml，图片落 .github/sponsor/ 并在 README 内联展示。微信/支付宝收款码无法写进 FUNDING.yml，本技能会自动内联到 README 并在 FUNDING.yml 里留注释指路。
 agent_created: true
 ---
@@ -39,6 +39,7 @@ bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://paypal.m
           │
           ├─ resolveQrList   按文件名/标签识别渠道（支付宝蓝 / 微信绿 / QQ / 云闪付 / PayPal）
           │
+          ├─ cropQr          检测二维码并裁出主体（finder 图案定位，--skip-crop 跳过）
           ├─ optimizeImage   sips 压到长边 800 / JPEG 82  →  .github/sponsor/
           │
           ├─ FUNDING.yml     平台原生键（ko_fi/liberapay/github…）+ custom 放 PayPal（最多 4 条）
@@ -106,6 +107,7 @@ node scripts/gen-sponsors.mjs --help
 | `--components-dir <目录>` | 组件输出目录（默认同 `--out` 根目录） |
 | `--no-source` | 不输出 index.html（源码一键复制页） |
 | `--no-readme` / `--no-optimize` / `--dry-run` | 不写 README / 不压图 / 只预演 |
+| `--skip-crop` | 跳过二维码自动裁剪 |
 
 ## 产物
 
@@ -172,6 +174,18 @@ Open Collective / Polar / Buy Me a Coffee / IssueHunt / thanks.dev），加**最
 
 `https://` 里的 `:` 会让一部分 YAML 解析器翻车。本技能统一输出 `- "https://..."`。
 详见 [`reference/funding-yml.md`](reference/funding-yml.md)。
+
+### 二维码自动裁剪
+
+用户随手截的收款海报构图千差万别（logo、标语、大片品牌色背景），多张码放一起视觉很乱。
+生成器默认先**定位二维码并裁出主体**：正方形、只含码本体 + 安静区（约 6% 呼吸边），
+不带海报文案、不带卡片边框——渠道名/署名由组件和 README 自己渲染，多码天然统一。
+
+实现（零三方依赖，见 `scripts/lib/qrcrop.mjs`）：`sips` 缩到 480px 输出 BMP（Node 标准库唯一能裸解的位图）→
+Bradley 自适应二值化（积分图）→ 行列双向扫 1:1:3:1:1 finder 图案 → 候点聚类 →
+三定位角右三角校验 → 三个定位角外缘就是码边界，外扩即包围盒 → 换算原图坐标 `sips --cropOffset` 裁剪。
+**检不出就原样走旧管线**（不阻断）；图本身已紧凑（裁剪面积 ≥95%）或源即产物（幂等重跑）时自动跳过。
+`--skip-crop` / 配置 `"skipCrop": true` 整段关闭。
 
 ### GitHub Pages 不服务 `.github/*`
 
