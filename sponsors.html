@@ -7,13 +7,17 @@
 <meta name="description" content="如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕">
 <meta name="color-scheme" content="light dark">
 <script>
-/* 主题：URL 加 #theme=light / #theme=dark 可强制某一套配色（分享/截图用），
-   否则读 localStorage，再否则跟随系统。放在 <style> 之前跑，避免首帧闪白。 */
-try{
-  var m=(location.hash||'').match(/theme=(light|dark)/);
-  var t=m?m[1]:localStorage.getItem('sponsor-theme');
-  if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
-}catch(e){}
+/* 主题 / 语言：URL 上 #theme=light|dark 与 #lang=zh|en 优先（分享、截图可复现），
+   其次 localStorage，再次跟随系统。必须在 <style> 之前跑，否则首帧会闪一下白。 */
+(function(){
+  var h = location.hash || '';
+  function hval(k, re){ var m = h.match(new RegExp('[#&]' + k + '=(' + re + ')')); return m ? m[1] : null; }
+  function store(k){ try { return localStorage.getItem('sponsor-' + k); } catch (e) { return null; } }
+  var th = hval('theme', 'light|dark') || store('theme');
+  if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th);
+  var lg = hval('lang', 'zh|en') || store('lang');
+  if (lg === 'zh' || lg === 'en') document.documentElement.setAttribute('data-lang', lg);
+})();
 </script>
 <style>
 :root{
@@ -66,7 +70,7 @@ try{
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0; padding:56px 20px 72px; color:var(--ink);
+  margin:0; padding:clamp(34px,6vw,56px) clamp(15px,4vw,20px) clamp(48px,7vw,72px); color:var(--ink);
   font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   background:var(--bg); background-attachment:fixed;
   min-height:100vh; transition:color .2s;
@@ -85,7 +89,8 @@ body{
 .lede{margin:0;color:var(--ink2);font-size:16.5px}
 
 .qrs{display:grid;gap:22px;grid-template-columns:1fr;justify-items:center}
-@media(min-width:640px){.qrs.multi{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));justify-items:stretch}}
+/* min() 是关键：没有它，320px 窄屏上 minmax(250px,1fr) 会撑出横向滚动 */
+@media(min-width:640px){.qrs.multi{grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));justify-items:stretch}}
 
 .card{
   --accent:#10C8A1;
@@ -110,7 +115,7 @@ body{
   padding:5px 11px;border-radius:999px;
 }
 .chip svg{width:15px;height:15px}
-.hint{font-size:12px;color:var(--ink3)}
+.hint{font-size:12px;color:var(--ink3);white-space:nowrap}
 
 .qr{
   position:relative;display:block;width:100%;padding:12px;margin:0;cursor:zoom-in;
@@ -137,7 +142,7 @@ body{
   font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink3);margin:0 0 14px;text-align:center;
 }
-.links{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.links{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
 .link{
   --accent:#10C8A1;
   position:relative;display:flex;align-items:center;gap:12px;
@@ -162,14 +167,19 @@ body{
 .foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
 .foot a:hover{color:var(--ink)}
 
-.theme-toggle{
-  position:fixed;top:16px;right:16px;z-index:20;width:38px;height:38px;border-radius:12px;
+.tools{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px}
+@media (max-width:520px){.tools{top:10px;right:10px;gap:6px}}
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;padding:0;
   display:grid;place-items:center;cursor:pointer;color:var(--ink2);
   background:var(--ui-bg);border:1px solid var(--ui-line);
   backdrop-filter:blur(10px);box-shadow:0 4px 14px -8px rgba(16,32,56,.5);
+  font-family:inherit;font-size:12.5px;font-weight:700;letter-spacing:.02em;
 }
-.theme-toggle:hover{color:var(--ink)}
-.theme-toggle svg{width:18px;height:18px}
+@media (max-width:520px){.icon-btn{width:34px;height:34px}}
+.icon-btn:hover{color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .lightbox{
   position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
@@ -196,34 +206,49 @@ body{
   body{background:#fff;padding:0}
   .card,.link{box-shadow:none;break-inside:avoid;background:#fff}
   .qr{cursor:default}
-  .hint,.zoom,.foot,.theme-toggle{display:none}
+  .hint,.zoom,.foot,.tools{display:none}
   .lightbox{display:none}
 }
-.theme-toggle .ic-moon{display:none}
-:root[data-theme="dark"] .theme-toggle .ic-sun{display:none}
-:root[data-theme="dark"] .theme-toggle .ic-moon{display:block}
+.icon-btn .ic-moon{display:none}
+:root[data-theme="dark"] .icon-btn .ic-sun{display:none}
+:root[data-theme="dark"] .icon-btn .ic-moon{display:block}
 @media(prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .theme-toggle .ic-sun{display:none}
-  :root:not([data-theme="light"]) .theme-toggle .ic-moon{display:block}
+  :root:not([data-theme="light"]) .icon-btn .ic-sun{display:none}
+  :root:not([data-theme="light"]) .icon-btn .ic-moon{display:block}
+}
+
+/* ── 响应式：窄屏收边距、卡片变紧凑、副标题不再挤压 ── */
+@media (max-width:520px){
+  body{padding:36px 15px 52px}
+  .hero{margin-bottom:26px}
+  .card{padding:16px 16px 14px;border-radius:18px}
+  .link{padding:13px 14px}
+  .link-sub{max-width:48%;font-size:12px}
+  .links-wrap{margin-top:32px}
+  .lightbox{padding:20px}
+  .lb-close{top:14px;right:16px}
 }
 </style>
 </head>
 <body>
-<button class="theme-toggle" type="button" aria-label="切换深色 / 浅色" title="切换深色 / 浅色">
-  <span class="ic-sun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></svg></span><span class="ic-moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7Z"/></svg></span>
-</button>
+<div class="tools">
+  <button class="icon-btn lang-toggle" type="button" aria-label="切换中文 / English" title="切换中文 / English"><span class="lang-short">EN</span></button>
+  <button class="icon-btn theme-toggle" type="button" aria-label="切换深色 / 浅色" title="切换深色 / 浅色">
+    <span class="ic-sun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></svg></span><span class="ic-moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7Z"/></svg></span>
+  </button>
+</div>
 <main class="wrap">
   <header class="hero">
-    <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 4.2-5.4 8-8.8 10.4C8.6 16.6 3.2 12.8 3.2 8.6A4.6 4.6 0 0 1 12 6.4a4.6 4.6 0 0 1 8.8 2.2Z"/></svg> SPONSOR</span>
-    <h1>赞助支持 · iskill-generate-sponsors</h1>
-    <p class="lede">如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕</p>
+    <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 4.2-5.4 8-8.8 10.4C8.6 16.6 3.2 12.8 3.2 8.6A4.6 4.6 0 0 1 12 6.4a4.6 4.6 0 0 1 8.8 2.2Z"/></svg><span data-slot="badge">赞助支持</span></span>
+    <h1 data-slot="title">赞助支持 · iskill-generate-sponsors</h1>
+    <p class="lede" data-slot="tagline">如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕</p>
   </header>
 
   <section class="qrs multi">
 
-      <figure class="card" style="--accent:#1677FF">
+      <figure class="card" data-i="0" style="--accent:#1677FF">
         <div class="card-head">
-          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg>支付宝</span>
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg><span data-slot="chip">支付宝</span></span>
           <span class="hint">点击放大</span>
         </div>
         <button class="qr" type="button" data-label="支付宝" aria-label="放大支付宝收款码">
@@ -231,14 +256,14 @@ body{
           <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg></span>
         </button>
         <figcaption>
-          <strong>支付宝</strong>
-          <span>打开支付宝「扫一扫」</span>
+          <strong data-slot="cap-label">支付宝</strong>
+          <span data-slot="cap-tip">打开支付宝「扫一扫」</span>
         </figcaption>
       </figure>
 
-      <figure class="card" style="--accent:#07C160">
+      <figure class="card" data-i="1" style="--accent:#07C160">
         <div class="card-head">
-          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg>微信</span>
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg><span data-slot="chip">微信</span></span>
           <span class="hint">点击放大</span>
         </div>
         <button class="qr" type="button" data-label="微信" aria-label="放大微信收款码">
@@ -246,14 +271,14 @@ body{
           <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg></span>
         </button>
         <figcaption>
-          <strong>微信</strong>
-          <span>打开微信「扫一扫」</span>
+          <strong data-slot="cap-label">微信</strong>
+          <span data-slot="cap-tip">打开微信「扫一扫」</span>
         </figcaption>
       </figure>
   </section>
 
   <section class="links-wrap">
-    <h2>其他支持方式</h2>
+    <h2 data-slot="links-title">其他支持方式</h2>
     <div class="links">
 
         <a class="link" style="--accent:#0070BA" href="https://paypal.me/zeovi" target="_blank" rel="noopener noreferrer">
@@ -264,46 +289,106 @@ body{
     </div>
   </section>
 
-  <p class="note">中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。</p>
+  <p class="note" data-slot="note">中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。</p>
 
-  <footer class="foot">
-    由 <a href="https://github.com/aispin/iskill-generate-sponsors" target="_blank" rel="noopener noreferrer">iskill-generate-sponsors</a> 生成 · 2026-10-01
-  </footer>
+  <footer class="foot" data-slot="foot">由 <a href="https://github.com/aispin/iskill-generate-sponsors" target="_blank" rel="noopener noreferrer">iskill-generate-sponsors</a> 生成 · 2026-10-01</footer>
 </main>
 
 <div class="lightbox" hidden>
-  <button class="lb-close" type="button" aria-label="关闭">×</button>
+  <button class="lb-close" type="button" aria-label="关闭放大图">×</button>
   <img alt="">
   <p class="lb-cap"></p>
 </div>
 
 <script>
+var SPONSOR = {"defaultLang":"zh","langs":["zh","en"],"title":{"zh":"赞助支持 · iskill-generate-sponsors","en":"Sponsor · iskill-generate-sponsors"},"tagline":{"zh":"如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕","en":"If this skill saved you some time, you can buy me a coffee ☕"},"note":{"zh":"中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。","en":"Scan the QR codes if you are in mainland China (Alipay / WeChat); PayPal is easier overseas."},"foot":{"zh":"由 <a href=\"https://github.com/aispin/iskill-generate-sponsors\" target=\"_blank\" rel=\"noopener noreferrer\">iskill-generate-sponsors<\/a> 生成 · 2026-10-01","en":"Generated by <a href=\"https://github.com/aispin/iskill-generate-sponsors\" target=\"_blank\" rel=\"noopener noreferrer\">iskill-generate-sponsors<\/a> · 2026-10-01"},"generatedAt":"2026-10-01","generator":{"name":"iskill-generate-sponsors","url":"https://github.com/aispin/iskill-generate-sponsors"},"ui":{"zh":{"badge":"赞助支持","hint":"点击放大","linksTitle":"其他支持方式","altOf":"{x}收款码","zoomOf":"放大{x}收款码","themeAria":"切换深色 / 浅色","langAria":"切换中文 / English","closeAria":"关闭放大图","langShort":"EN","empty":"还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字<\/code> 再来一次。"},"en":{"badge":"SPONSOR","hint":"Tap to enlarge","linksTitle":"Other ways to support","altOf":"{x} QR code","zoomOf":"Enlarge the {x} QR code","themeAria":"Toggle dark / light mode","langAria":"Switch between 中文 / English","closeAria":"Close","langShort":"中","empty":"No external sponsor links yet. Add one with <code>--paypal https://paypal.me/yourname<\/code>, then re-run."}},"qr":[{"key":"alipay","src":".github/sponsor/alipay.jpg","accent":"#1677FF","label":{"zh":"支付宝","en":"Alipay"},"tip":{"zh":"打开支付宝「扫一扫」","en":"Scan with Alipay"}},{"key":"wechat","src":".github/sponsor/wechat.jpg","accent":"#07C160","label":{"zh":"微信","en":"WeChat"},"tip":{"zh":"打开微信「扫一扫」","en":"Scan with WeChat"}}],"links":[{"label":"PayPal","sub":"paypal.me/zeovi","url":"https://paypal.me/zeovi","accent":"#0070BA"}]};
 (function () {
+  var root = document.documentElement;
   var lb = document.querySelector('.lightbox');
   var img = lb.querySelector('img');
   var cap = lb.querySelector('.lb-cap');
+
+  function pick(v, lang) {
+    if (v == null) return '';
+    if (typeof v !== 'object' || Array.isArray(v)) return String(v);
+    if (v[lang] != null) return v[lang];
+    return v.zh != null ? v.zh : (v.en != null ? v.en : '');
+  }
+  function fill(tpl, x) { return String(tpl == null ? '{x}' : tpl).replace('{x}', x); }
+  function all(sel, fn) { document.querySelectorAll(sel).forEach(fn); }
+
+  function apply(lang) {
+    var t = SPONSOR.ui[lang] || SPONSOR.ui.zh;
+    root.lang = lang === 'en' ? 'en' : 'zh-CN';
+    // data-lang 给 CSS 用（如需按语言切换字体/间距），与 data-theme 同一套路
+    root.setAttribute('data-lang', lang);
+    document.title = pick(SPONSOR.title, lang);
+    all('[data-slot="title"]',      function (e) { e.textContent = pick(SPONSOR.title, lang); });
+    all('[data-slot="tagline"]',    function (e) { e.textContent = pick(SPONSOR.tagline, lang); });
+    all('[data-slot="badge"]',      function (e) { e.textContent = t.badge; });
+    all('[data-slot="links-title"]',function (e) { e.textContent = t.linksTitle; });
+    all('[data-slot="note"]',       function (e) { e.textContent = pick(SPONSOR.note, lang); });
+    all('[data-slot="foot"]',       function (e) { e.innerHTML = pick(SPONSOR.foot, lang); });
+    all('.empty',                   function (e) { e.innerHTML = t.empty; });
+    all('.hint',                    function (e) { e.textContent = t.hint; });
+    all('.lang-short',              function (e) { e.textContent = t.langShort; });
+    all('.theme-toggle',            function (e) { e.setAttribute('aria-label', t.themeAria); e.setAttribute('title', t.themeAria); });
+    all('.lang-toggle',             function (e) { e.setAttribute('aria-label', t.langAria); e.setAttribute('title', t.langAria); });
+    all('.lb-close',                function (e) { e.setAttribute('aria-label', t.closeAria); });
+
+    all('.card[data-i]', function (c) {
+      var q = SPONSOR.qr[+c.dataset.i];
+      if (!q) return;
+      var label = pick(q.label, lang);
+      var chip = c.querySelector('[data-slot="chip"]');
+      var capL = c.querySelector('[data-slot="cap-label"]');
+      var capT = c.querySelector('[data-slot="cap-tip"]');
+      if (chip) chip.textContent = label;
+      if (capL) capL.textContent = label;
+      if (capT) capT.textContent = pick(q.tip, lang);
+      var im = c.querySelector('img');
+      if (im) im.alt = fill(t.altOf, label);
+      var b = c.querySelector('.qr');
+      if (b) { b.dataset.label = label; b.setAttribute('aria-label', fill(t.zoomOf, label)); }
+    });
+  }
+
+  var langs = SPONSOR.langs && SPONSOR.langs.length ? SPONSOR.langs : ['zh', 'en'];
+  var lang = root.getAttribute('data-lang') || SPONSOR.defaultLang || 'zh';
+  if (langs.indexOf(lang) < 0) lang = langs[0];
+  apply(lang);   // 首屏已是默认语言，这里只负责纠偏（比如 #lang=en 打开）
+
+  /* ── 灯箱 ── */
   function open(src, label, alt) {
     img.src = src; img.alt = alt; cap.textContent = label;
     lb.hidden = false; document.body.style.overflow = 'hidden';
   }
   function close() { lb.hidden = true; img.src = ''; document.body.style.overflow = ''; }
-  document.querySelectorAll('.qr').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var im = b.querySelector('img');
-      open(im.currentSrc || im.src, b.dataset.label, im.alt);
-    });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.qr') : null;
+    if (b) { var im = b.querySelector('img'); open(im.currentSrc || im.src, b.dataset.label, im.alt); }
   });
   lb.addEventListener('click', function (e) { if (e.target === lb || e.target === img) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) close(); });
 
-  var btn = document.querySelector('.theme-toggle');
-  if (btn) btn.addEventListener('click', function () {
-    var root = document.documentElement;
+  /* ── 主题切换 ── */
+  var tBtn = document.querySelector('.theme-toggle');
+  if (tBtn) tBtn.addEventListener('click', function () {
     var now = root.getAttribute('data-theme');
-    if (!now) now = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (now !== 'light' && now !== 'dark') {
+      now = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
     var next = now === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     try { localStorage.setItem('sponsor-theme', next); } catch (e) {}
+  });
+
+  /* ── 语言切换 ── */
+  var lBtn = document.querySelector('.lang-toggle');
+  if (lBtn) lBtn.addEventListener('click', function () {
+    lang = langs[(langs.indexOf(lang) + 1) % langs.length];
+    apply(lang);
+    try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}
   });
 })();
 </script>

@@ -7,7 +7,14 @@
   "imgBase": ".github/sponsor",
   "max": 800,
   "style": "card",
+  "lang": "zh",
+  "langs": "zh,en",
   "note": "中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。",
+  "en": {
+    "title": "Sponsor · iskill-generate-sponsors",
+    "tagline": "If this skill saved you some time, you can buy me a coffee ☕",
+    "note": "Scan the QR codes if you are in mainland China (Alipay / WeChat); PayPal is easier overseas."
+  },
   "links": {
     "paypal": "https://paypal.me/zeovi",
     "kofi": "",

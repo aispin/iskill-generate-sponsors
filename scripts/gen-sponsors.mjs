@@ -17,21 +17,31 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { GEN_URL, UI, MD, buildModel, pick, qrText, fill } from './lib/model.mjs';
+import { renderReact } from './render-react.mjs';
+import { renderVue } from './render-vue.mjs';
 
 // ─────────────────────────────────────────────────────────────── 常量
 
 const MARK_START = '<!-- sponsors:start -->';
 const MARK_END = '<!-- sponsors:end -->';
-const GEN_URL = 'https://github.com/aispin/iskill-generate-sponsors';
 
-/** 已知渠道：文件名/标签命中 keyword 时套用 label / accent / tip */
+/** 已知渠道：文件名/标签命中 keyword 时套用 label / accent / tip（en 供双语产物用） */
 const CHANNELS = [
-  { key: 'alipay',   label: '支付宝', accent: '#1677FF', kw: /(alipay|zhifubao|支付宝)/i, tip: '打开支付宝「扫一扫」' },
-  { key: 'wechat',   label: '微信',   accent: '#07C160', kw: /(wechat|weixin|微信)/i,    tip: '打开微信「扫一扫」' },
-  { key: 'qq',       label: 'QQ',     accent: '#12B7F5', kw: /(qq钱包|qqpay|\bqq\b)/i,    tip: '打开 QQ「扫一扫」' },
-  { key: 'unionpay', label: '云闪付', accent: '#E60012', kw: /(unionpay|yunshanfu|云闪付)/i, tip: '打开云闪付「扫一扫」' },
-  { key: 'paypal',   label: 'PayPal', accent: '#0070BA', kw: /(paypal|paypalme)/i,       tip: '打开 PayPal App 扫码' },
+  { key: 'alipay',   label: '支付宝', accent: '#1677FF', kw: /(alipay|zhifubao|支付宝)/i, tip: '打开支付宝「扫一扫」',
+    en: { label: 'Alipay',    tip: 'Scan with Alipay' } },
+  { key: 'wechat',   label: '微信',   accent: '#07C160', kw: /(wechat|weixin|微信)/i,    tip: '打开微信「扫一扫」',
+    en: { label: 'WeChat',    tip: 'Scan with WeChat' } },
+  { key: 'qq',       label: 'QQ',     accent: '#12B7F5', kw: /(qq钱包|qqpay|\bqq\b)/i,    tip: '打开 QQ「扫一扫」',
+    en: { label: 'QQ Wallet', tip: 'Scan with QQ' } },
+  { key: 'unionpay', label: '云闪付', accent: '#E60012', kw: /(unionpay|yunshanfu|云闪付)/i, tip: '打开云闪付「扫一扫」',
+    en: { label: 'UnionPay',  tip: 'Scan with UnionPay' } },
+  { key: 'paypal',   label: 'PayPal', accent: '#0070BA', kw: /(paypal|paypalme)/i,       tip: '打开 PayPal App 扫码',
+    en: { label: 'PayPal',    tip: 'Scan in the PayPal app' } },
 ];
+
+/** 未识别渠道的兜底文案（双语） */
+const GENERIC_TEXT = { zh: { label: '收款码', tip: '扫码支持我' }, en: { label: 'QR code', tip: 'Scan to support' } };
 
 /** FUNDING.yml 支持的平台键 → 展示信息（值都是「用户名」） */
 const FUNDING_PLATFORMS = {
@@ -90,6 +100,12 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --tagline <文本>         一句感谢语
   --title <文本>           赞助页主标题（默认「赞助支持 · <project>」）
 
+双语（html / jsx / vue 都带语言切换）
+  --lang zh|en            默认语言（默认 zh）
+  --langs zh,en           可选语言；只给一种时隐藏切换按钮
+  --title-en <文本>        --tagline-en <文本>      --note-en <文本>
+                          不填则英文沿用中文文案（二维码渠道名与界面文案已内置英文）
+
 赞助链接（值是用户名，PayPal 例外传完整 URL）
   --paypal <url>           例：https://paypal.me/zeovi
   --kofi <用户名>            --liberapay <用户名>     --github <用户名>
@@ -100,8 +116,10 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --img-base <路径>        md/html 里引用图片的相对路径前缀（默认 .github/sponsor）
   --prefix <前缀>          输出图片文件名前缀（默认空）
   --max <像素>             图片长边上限（默认 800）
-  --style card|minimal     html 风格（默认 card）
-  --standalone             html 内嵌 base64 图片，单文件可直接发人
+  --style card|minimal     html 风格（默认 card；React/Vue 组件恒为 card）
+  --standalone             图片转 base64 内嵌，产物自包含（html 与组件都生效）
+  --no-components          不输出 SponsorCard.jsx / SponsorCard.vue
+  --components-dir <目录>  组件输出目录（默认同 --out 根目录）
   --no-readme              不写入 README
   --no-optimize            不压缩图片，原样拷贝
   --dry-run                只打印将要做什么，不落盘
@@ -158,6 +176,14 @@ function buildOptions(args) {
   const tagline = args.tagline || cfg.tagline || DEFAULT_TAGLINE;
   const title = args.title || cfg.title || `赞助支持 · ${project}`;
 
+  // 双语：英文文案可整体写在配置的 en 段里，也可以用 --xxx-en 单独给
+  const enCfg = cfg.en || {};
+  const titleEn = args.titleEn || enCfg.title || '';
+  const taglineEn = args.taglineEn || enCfg.tagline || '';
+  const noteEn = args.noteEn || enCfg.note || '';
+  const langs = String(args.langs || cfg.langs || 'zh,en')
+    .split(',').map(s => s.trim()).filter(s => s === 'zh' || s === 'en');
+
   const qrSpecs = [];
   for (const raw of args.qr || []) {
     const i = raw.indexOf('=');
@@ -177,6 +203,9 @@ function buildOptions(args) {
 
   return {
     name, project, tagline, title,
+    titleEn, taglineEn, noteEn,
+    lang: args.lang || cfg.lang || 'zh',
+    langs: langs.length ? langs : ['zh', 'en'],
     accent: args.accent || cfg.accent || '#10C8A1',
     footerNote: args.note || cfg.note || '',
     links, extraLinks, qrSpecs,
@@ -189,6 +218,8 @@ function buildOptions(args) {
     standalone: !!args.standalone || !!cfg.standalone,
     noReadme: !!args.noReadme,
     noOptimize: !!args.noOptimize,
+    noComponents: !!args.noComponents || !!cfg.noComponents,
+    componentsDir: path.resolve(args.componentsDir || cfg.componentsDir || args.out || cfg.out || '.'),
     dryRun: !!args.dryRun,
     readme: args.readme || cfg.readme || 'README.md',
     markStart: cfg.markerStart || MARK_START,
@@ -260,19 +291,22 @@ function resolveQrList(opt) {
     const abs = path.resolve(String(s.src).replace(/^~/, process.env.HOME || '~'));
     const ch = s.key ? CHANNELS.find(c => c.key === s.key) : matchChannel(s.label + ' ' + path.basename(abs));
     const label = s.label || ch?.label || `收款码 ${idx + 1}`;
-    const tip = s.tip || ch?.tip || '扫码支持我';
+    const tip = s.tip || ch?.tip || GENERIC_TEXT.zh.tip;
     const accent = s.accent || ch?.accent || opt.accent;
+    // 英文：显式指定 > 渠道内置 > 与中文同名（未识别渠道时文案原样沿用）
+    const en = s.en || {};
+    const labelEn = en.label || ch?.en?.label || (!ch && label === GENERIC_TEXT.zh.label ? GENERIC_TEXT.en.label : label);
+    const tipEn = en.tip || ch?.en?.tip || (!ch && tip === GENERIC_TEXT.zh.tip ? GENERIC_TEXT.en.tip : tip);
     const baseName = (opt.prefix || '') + slug(ch?.key || s.key || label);
+    const meta = { label, tip, labelEn, tipEn, accent, key: ch?.key || slug(label), baseName };
 
     // 源图缺失但产物已存在 → 直接复用（让配置在换机器后仍可重跑）
     if (!fs.existsSync(abs)) {
       const found = ['.jpg', '.png', '.webp'].map(e => path.join(destDir, baseName + e)).find(fs.existsSync);
-      if (found) {
-        return { label, tip, accent, key: ch?.key || slug(label), baseName, abs: null, destName: path.basename(found), reuse: true };
-      }
+      if (found) return { ...meta, abs: null, destName: path.basename(found), reuse: true };
       throw new Error(`图片不存在：${s.src}`);
     }
-    return { label, tip, accent, key: ch?.key || slug(label), baseName, abs, reuse: false };
+    return { ...meta, abs, reuse: false };
   });
 }
 
@@ -328,7 +362,8 @@ function renderFundingYml(opt, qrList) {
 function mdImageRow(qrList, opt, indent = '') {
   const cells = qrList.map(q => {
     const src = `${opt.imgBase}/${q.destName}`;
-    return `<img src="${src}" width="${q.mdWidth}" alt="${esc(q.label)}收款码">`;
+    const { label } = qrText(q, opt.lang);
+    return `<img src="${src}" width="${q.mdWidth}" alt="${esc(label)}收款码">`;
   });
   // 间距用 &nbsp; 且**不单独占一行** —— 独占一行的裸实体在部分 Markdown 渲染器里
   // 会被包成 <p>，从而提前闭合外层 <p align="center">，两张码就变成上下堆叠。
@@ -336,36 +371,39 @@ function mdImageRow(qrList, opt, indent = '') {
 }
 
 function linkTable(opt, qrList) {
+  const m = MD[opt.lang] || MD.zh;
   const rows = [];
-  for (const q of qrList) rows.push(`| **${esc(q.label)}** | 扫码（见上方二维码） |`);
+  for (const q of qrList) rows.push(`| **${esc(qrText(q, opt.lang).label)}** | ${m.scan} |`);
   for (const [key, info] of Object.entries(FUNDING_PLATFORMS)) {
     const val = opt.links[key];
     if (val) rows.push(`| ${info.label} | [${val}](${info.url(val)}) |`);
   }
   if (opt.links.paypal) rows.push(`| PayPal | [${opt.links.paypal}](${opt.links.paypal}) |`);
   for (const l of opt.extraLinks) rows.push(`| ${esc(l.label)} | [${l.url}](${l.url}) |`);
-  return ['| 渠道 | 地址 |', '| --- | --- |', ...rows].join('\n');
+  return [`| ${m.ch} | ${m.addr} |`, '| --- | --- |', ...rows].join('\n');
 }
 
 function renderMarkdown(opt, qrList, { heading = true } = {}) {
+  const m = MD[opt.lang] || MD.zh;
   const L = [];
   L.push(opt.markStart);
   if (heading) {
-    L.push(`## ${opt.title}`);
+    L.push(`## ${pick({ zh: opt.title, en: opt.titleEn || opt.title }, opt.lang)}`);
     L.push('');
-    L.push(opt.tagline);
+    L.push(pick({ zh: opt.tagline, en: opt.taglineEn || opt.tagline }, opt.lang));
     L.push('');
   }
   if (qrList.length) {
     L.push(mdImageRow(qrList, opt));
     L.push('');
-    L.push('<p align="center"><sub>' + qrList.map(q => esc(q.tip)).join(' · ') + '</sub></p>');
+    L.push('<p align="center"><sub>' + qrList.map(q => esc(qrText(q, opt.lang).tip)).join(' · ') + '</sub></p>');
     L.push('');
   }
   L.push(linkTable(opt, qrList));
   L.push('');
-  if (opt.footerNote) { L.push(opt.footerNote); L.push(''); }
-  L.push(`<p align="center"><sub>感谢每一份支持 · <a href="${GEN_URL}">iskill-generate-sponsors</a></sub></p>`);
+  const note = pick({ zh: opt.footerNote, en: opt.noteEn || opt.footerNote }, opt.lang);
+  if (note) { L.push(note); L.push(''); }
+  L.push(`<p align="center"><sub>${m.thanks} · <a href="${GEN_URL}">iskill-generate-sponsors</a></sub></p>`);
   L.push(opt.markEnd);
   return L.join('\n');
 }
@@ -381,9 +419,9 @@ function fundingBody(opt, qrList) {
 
 function renderStandaloneMd(opt, qrList) {
   const L = [];
-  L.push(`# ${opt.title}`);
+  L.push(`# ${pick({ zh: opt.title, en: opt.titleEn || opt.title }, opt.lang)}`);
   L.push('');
-  L.push(`> ${opt.tagline}`);
+  L.push(`> ${pick({ zh: opt.tagline, en: opt.taglineEn || opt.tagline }, opt.lang)}`);
   L.push('');
   L.push(`下面 \`${opt.markStart}\` 与 \`${opt.markEnd}\` 之间的内容，可以整段复制进你的 README 或任意 Markdown 文档。`);
   L.push('');
@@ -439,73 +477,81 @@ function dataUri(file, mime) {
   return `data:${mime};base64,` + fs.readFileSync(file).toString('base64');
 }
 
-function renderHtml(opt, qrList) {
+function renderHtml(opt, qrList, model) {
   const minimal = opt.style === 'minimal';
-  const links = renderLinks(opt);
-  const date = new Date().toISOString().slice(0, 10);
+  const lang = opt.lang || 'zh';
+  const t = model.ui[lang] || model.ui.zh;
+  const L0 = k => pick(model[k], lang);
 
-  const cards = qrList.map(q => {
-    const src = opt.standalone
-      ? dataUri(path.join(opt.out, opt.imgBase, q.destName), q.destName.endsWith('.png') ? 'image/png' : 'image/jpeg')
-      : `${opt.imgBase}/${q.destName}`;
+  // 首屏直接按默认语言渲染出静态内容（无 JS 也能看），再由脚本按需切换
+  const cards = qrList.map((q, i) => {
+    const { label, tip } = qrText(q, lang);
     return `
-      <figure class="card" style="--accent:${q.accent}">
+      <figure class="card" data-i="${i}" style="--accent:${q.accent}">
         <div class="card-head">
-          <span class="chip">${ICON.qr}${esc(q.label)}</span>
-          <span class="hint">点击放大</span>
+          <span class="chip">${ICON.qr}<span data-slot="chip">${esc(label)}</span></span>
+          <span class="hint">${esc(t.hint)}</span>
         </div>
-        <button class="qr" type="button" data-label="${esc(q.label)}" aria-label="放大${esc(q.label)}收款码">
-          <img src="${src}" alt="${esc(q.label)}收款码" loading="lazy" decoding="async">
+        <button class="qr" type="button" data-label="${esc(label)}" aria-label="${esc(fill(t.zoomOf, label))}">
+          <img src="${q.cSrc}" alt="${esc(fill(t.altOf, label))}" loading="lazy" decoding="async">
           <span class="zoom">${ICON.expand}</span>
         </button>
         <figcaption>
-          <strong>${esc(q.label)}</strong>
-          <span>${esc(q.tip)}</span>
+          <strong data-slot="cap-label">${esc(label)}</strong>
+          <span data-slot="cap-tip">${esc(tip)}</span>
         </figcaption>
       </figure>`;
   }).join('\n');
 
-  const buttons = links.length
-    ? links.map(l => `
+  const buttons = model.links.length
+    ? model.links.map(l => `
         <a class="link" style="--accent:${l.accent}" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">
           <span class="link-label">${esc(l.label)}</span>
           <span class="link-sub">${esc(l.sub)}</span>
           <span class="link-icon">${ICON.link}</span>
         </a>`).join('\n')
-    : '<p class="empty">还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字</code> 再来一次。</p>';
+    : `<p class="empty">${t.empty}</p>`;
 
+  const multi = opt.langs.length > 1;
   const css = minimal ? cssMinimal() : cssCard();
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${lang === 'en' ? 'en' : 'zh-CN'}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(opt.title)}</title>
-<meta name="description" content="${esc(opt.tagline)}">
+<title>${esc(L0('title'))}</title>
+<meta name="description" content="${esc(L0('tagline'))}">
 <meta name="color-scheme" content="light dark">
 <script>
-/* 主题：URL 加 #theme=light / #theme=dark 可强制某一套配色（分享/截图用），
-   否则读 localStorage，再否则跟随系统。放在 <style> 之前跑，避免首帧闪白。 */
-try{
-  var m=(location.hash||'').match(/theme=(light|dark)/);
-  var t=m?m[1]:localStorage.getItem('sponsor-theme');
-  if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
-}catch(e){}
+/* 主题 / 语言：URL 上 #theme=light|dark 与 #lang=zh|en 优先（分享、截图可复现），
+   其次 localStorage，再次跟随系统。必须在 <style> 之前跑，否则首帧会闪一下白。 */
+(function(){
+  var h = location.hash || '';
+  function hval(k, re){ var m = h.match(new RegExp('[#&]' + k + '=(' + re + ')')); return m ? m[1] : null; }
+  function store(k){ try { return localStorage.getItem('sponsor-' + k); } catch (e) { return null; } }
+  var th = hval('theme', 'light|dark') || store('theme');
+  if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th);
+  var lg = hval('lang', 'zh|en') || store('lang');
+  if (lg === 'zh' || lg === 'en') document.documentElement.setAttribute('data-lang', lg);
+})();
 </script>
 <style>
 ${css}
 </style>
 </head>
 <body>
-<button class="theme-toggle" type="button" aria-label="切换深色 / 浅色" title="切换深色 / 浅色">
-  <span class="ic-sun">${ICON.sun}</span><span class="ic-moon">${ICON.moon}</span>
-</button>
+<div class="tools">
+  ${multi ? `<button class="icon-btn lang-toggle" type="button" aria-label="${esc(t.langAria)}" title="${esc(t.langAria)}"><span class="lang-short">${esc(t.langShort)}</span></button>` : ''}
+  <button class="icon-btn theme-toggle" type="button" aria-label="${esc(t.themeAria)}" title="${esc(t.themeAria)}">
+    <span class="ic-sun">${ICON.sun}</span><span class="ic-moon">${ICON.moon}</span>
+  </button>
+</div>
 <main class="wrap">
   <header class="hero">
-    <span class="badge">${ICON.heart} SPONSOR</span>
-    <h1>${esc(opt.title)}</h1>
-    <p class="lede">${esc(opt.tagline)}</p>
+    <span class="badge">${ICON.heart}<span data-slot="badge">${esc(t.badge)}</span></span>
+    <h1 data-slot="title">${esc(L0('title'))}</h1>
+    <p class="lede" data-slot="tagline">${esc(L0('tagline'))}</p>
   </header>
 
   <section class="qrs${qrList.length > 1 ? ' multi' : ''}">
@@ -513,58 +559,123 @@ ${cards}
   </section>
 
   <section class="links-wrap">
-    <h2>其他支持方式</h2>
+    <h2 data-slot="links-title">${esc(t.linksTitle)}</h2>
     <div class="links">
 ${buttons}
     </div>
   </section>
 
-  ${opt.footerNote ? `<p class="note">${esc(opt.footerNote)}</p>` : ''}
+  ${L0('note') ? `<p class="note" data-slot="note">${esc(L0('note'))}</p>` : ''}
 
-  <footer class="foot">
-    由 <a href="${GEN_URL}" target="_blank" rel="noopener noreferrer">iskill-generate-sponsors</a> 生成 · ${date}
-  </footer>
+  <footer class="foot" data-slot="foot">${L0('foot')}</footer>
 </main>
 
 <div class="lightbox" hidden>
-  <button class="lb-close" type="button" aria-label="关闭">×</button>
+  <button class="lb-close" type="button" aria-label="${esc(t.closeAria)}">×</button>
   <img alt="">
   <p class="lb-cap"></p>
 </div>
 
 <script>
+var SPONSOR = ${embedJson(model)};
 (function () {
+  var root = document.documentElement;
   var lb = document.querySelector('.lightbox');
   var img = lb.querySelector('img');
   var cap = lb.querySelector('.lb-cap');
+
+  function pick(v, lang) {
+    if (v == null) return '';
+    if (typeof v !== 'object' || Array.isArray(v)) return String(v);
+    if (v[lang] != null) return v[lang];
+    return v.zh != null ? v.zh : (v.en != null ? v.en : '');
+  }
+  function fill(tpl, x) { return String(tpl == null ? '{x}' : tpl).replace('{x}', x); }
+  function all(sel, fn) { document.querySelectorAll(sel).forEach(fn); }
+
+  function apply(lang) {
+    var t = SPONSOR.ui[lang] || SPONSOR.ui.zh;
+    root.lang = lang === 'en' ? 'en' : 'zh-CN';
+    // data-lang 给 CSS 用（如需按语言切换字体/间距），与 data-theme 同一套路
+    root.setAttribute('data-lang', lang);
+    document.title = pick(SPONSOR.title, lang);
+    all('[data-slot="title"]',      function (e) { e.textContent = pick(SPONSOR.title, lang); });
+    all('[data-slot="tagline"]',    function (e) { e.textContent = pick(SPONSOR.tagline, lang); });
+    all('[data-slot="badge"]',      function (e) { e.textContent = t.badge; });
+    all('[data-slot="links-title"]',function (e) { e.textContent = t.linksTitle; });
+    all('[data-slot="note"]',       function (e) { e.textContent = pick(SPONSOR.note, lang); });
+    all('[data-slot="foot"]',       function (e) { e.innerHTML = pick(SPONSOR.foot, lang); });
+    all('.empty',                   function (e) { e.innerHTML = t.empty; });
+    all('.hint',                    function (e) { e.textContent = t.hint; });
+    all('.lang-short',              function (e) { e.textContent = t.langShort; });
+    all('.theme-toggle',            function (e) { e.setAttribute('aria-label', t.themeAria); e.setAttribute('title', t.themeAria); });
+    all('.lang-toggle',             function (e) { e.setAttribute('aria-label', t.langAria); e.setAttribute('title', t.langAria); });
+    all('.lb-close',                function (e) { e.setAttribute('aria-label', t.closeAria); });
+
+    all('.card[data-i]', function (c) {
+      var q = SPONSOR.qr[+c.dataset.i];
+      if (!q) return;
+      var label = pick(q.label, lang);
+      var chip = c.querySelector('[data-slot="chip"]');
+      var capL = c.querySelector('[data-slot="cap-label"]');
+      var capT = c.querySelector('[data-slot="cap-tip"]');
+      if (chip) chip.textContent = label;
+      if (capL) capL.textContent = label;
+      if (capT) capT.textContent = pick(q.tip, lang);
+      var im = c.querySelector('img');
+      if (im) im.alt = fill(t.altOf, label);
+      var b = c.querySelector('.qr');
+      if (b) { b.dataset.label = label; b.setAttribute('aria-label', fill(t.zoomOf, label)); }
+    });
+  }
+
+  var langs = SPONSOR.langs && SPONSOR.langs.length ? SPONSOR.langs : ['zh', 'en'];
+  var lang = root.getAttribute('data-lang') || SPONSOR.defaultLang || 'zh';
+  if (langs.indexOf(lang) < 0) lang = langs[0];
+  apply(lang);   // 首屏已是默认语言，这里只负责纠偏（比如 #lang=en 打开）
+
+  /* ── 灯箱 ── */
   function open(src, label, alt) {
     img.src = src; img.alt = alt; cap.textContent = label;
     lb.hidden = false; document.body.style.overflow = 'hidden';
   }
   function close() { lb.hidden = true; img.src = ''; document.body.style.overflow = ''; }
-  document.querySelectorAll('.qr').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var im = b.querySelector('img');
-      open(im.currentSrc || im.src, b.dataset.label, im.alt);
-    });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.qr') : null;
+    if (b) { var im = b.querySelector('img'); open(im.currentSrc || im.src, b.dataset.label, im.alt); }
   });
   lb.addEventListener('click', function (e) { if (e.target === lb || e.target === img) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) close(); });
 
-  var btn = document.querySelector('.theme-toggle');
-  if (btn) btn.addEventListener('click', function () {
-    var root = document.documentElement;
+  /* ── 主题切换 ── */
+  var tBtn = document.querySelector('.theme-toggle');
+  if (tBtn) tBtn.addEventListener('click', function () {
     var now = root.getAttribute('data-theme');
-    if (!now) now = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (now !== 'light' && now !== 'dark') {
+      now = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
     var next = now === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     try { localStorage.setItem('sponsor-theme', next); } catch (e) {}
+  });
+
+  /* ── 语言切换 ── */
+  var lBtn = document.querySelector('.lang-toggle');
+  if (lBtn) lBtn.addEventListener('click', function () {
+    lang = langs[(langs.indexOf(lang) + 1) % langs.length];
+    apply(lang);
+    try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}
   });
 })();
 </script>
 </body>
 </html>
 `;
+}
+
+/** JSON 嵌进 <script>：转义 </ 防止提前闭合标签 */
+function embedJson(obj) {
+  return JSON.stringify(obj).replace(/<\//g, '<\\/');
 }
 
 function cssCard() {
@@ -618,7 +729,7 @@ function cssCard() {
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0; padding:56px 20px 72px; color:var(--ink);
+  margin:0; padding:clamp(34px,6vw,56px) clamp(15px,4vw,20px) clamp(48px,7vw,72px); color:var(--ink);
   font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   background:var(--bg); background-attachment:fixed;
   min-height:100vh; transition:color .2s;
@@ -637,7 +748,8 @@ body{
 .lede{margin:0;color:var(--ink2);font-size:16.5px}
 
 .qrs{display:grid;gap:22px;grid-template-columns:1fr;justify-items:center}
-@media(min-width:640px){.qrs.multi{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));justify-items:stretch}}
+/* min() 是关键：没有它，320px 窄屏上 minmax(250px,1fr) 会撑出横向滚动 */
+@media(min-width:640px){.qrs.multi{grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));justify-items:stretch}}
 
 .card{
   --accent:#10C8A1;
@@ -662,7 +774,7 @@ body{
   padding:5px 11px;border-radius:999px;
 }
 .chip svg{width:15px;height:15px}
-.hint{font-size:12px;color:var(--ink3)}
+.hint{font-size:12px;color:var(--ink3);white-space:nowrap}
 
 .qr{
   position:relative;display:block;width:100%;padding:12px;margin:0;cursor:zoom-in;
@@ -689,7 +801,7 @@ body{
   font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink3);margin:0 0 14px;text-align:center;
 }
-.links{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.links{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
 .link{
   --accent:#10C8A1;
   position:relative;display:flex;align-items:center;gap:12px;
@@ -714,14 +826,19 @@ body{
 .foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
 .foot a:hover{color:var(--ink)}
 
-.theme-toggle{
-  position:fixed;top:16px;right:16px;z-index:20;width:38px;height:38px;border-radius:12px;
+.tools{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px}
+@media (max-width:520px){.tools{top:10px;right:10px;gap:6px}}
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;padding:0;
   display:grid;place-items:center;cursor:pointer;color:var(--ink2);
   background:var(--ui-bg);border:1px solid var(--ui-line);
   backdrop-filter:blur(10px);box-shadow:0 4px 14px -8px rgba(16,32,56,.5);
+  font-family:inherit;font-size:12.5px;font-weight:700;letter-spacing:.02em;
 }
-.theme-toggle:hover{color:var(--ink)}
-.theme-toggle svg{width:18px;height:18px}
+@media (max-width:520px){.icon-btn{width:34px;height:34px}}
+.icon-btn:hover{color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .lightbox{
   position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
@@ -748,15 +865,27 @@ body{
   body{background:#fff;padding:0}
   .card,.link{box-shadow:none;break-inside:avoid;background:#fff}
   .qr{cursor:default}
-  .hint,.zoom,.foot,.theme-toggle{display:none}
+  .hint,.zoom,.foot,.tools{display:none}
   .lightbox{display:none}
 }
-.theme-toggle .ic-moon{display:none}
-:root[data-theme="dark"] .theme-toggle .ic-sun{display:none}
-:root[data-theme="dark"] .theme-toggle .ic-moon{display:block}
+.icon-btn .ic-moon{display:none}
+:root[data-theme="dark"] .icon-btn .ic-sun{display:none}
+:root[data-theme="dark"] .icon-btn .ic-moon{display:block}
 @media(prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .theme-toggle .ic-sun{display:none}
-  :root:not([data-theme="light"]) .theme-toggle .ic-moon{display:block}
+  :root:not([data-theme="light"]) .icon-btn .ic-sun{display:none}
+  :root:not([data-theme="light"]) .icon-btn .ic-moon{display:block}
+}
+
+/* ── 响应式：窄屏收边距、卡片变紧凑、副标题不再挤压 ── */
+@media (max-width:520px){
+  body{padding:36px 15px 52px}
+  .hero{margin-bottom:26px}
+  .card{padding:16px 16px 14px;border-radius:18px}
+  .link{padding:13px 14px}
+  .link-sub{max-width:48%;font-size:12px}
+  .links-wrap{margin-top:32px}
+  .lightbox{padding:20px}
+  .lb-close{top:14px;right:16px}
 }`;
 }
 
@@ -819,20 +948,23 @@ body{
 .note{margin-top:32px;text-align:center;color:var(--ink2);font-size:14px}
 .foot{margin-top:40px;text-align:center;font-size:12.5px;color:var(--ink3)}
 .foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
-.theme-toggle{position:fixed;top:16px;right:16px;z-index:20;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--ink2);background:var(--ui-bg);border:1px solid var(--ui-line);backdrop-filter:blur(10px)}
-.theme-toggle svg{width:18px;height:18px}
+.tools{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px}
+.icon-btn{width:38px;height:38px;border-radius:12px;padding:0;display:grid;place-items:center;cursor:pointer;color:var(--ink2);background:var(--ui-bg);border:1px solid var(--ui-line);backdrop-filter:blur(10px);font-family:inherit;font-size:12.5px;font-weight:700}
+.icon-btn:hover{color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
 .lightbox{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(9,16,28,.8);padding:32px;cursor:zoom-out}
 .lightbox[hidden]{display:none}
 .lightbox img{max-width:min(420px,86vw);max-height:76vh;background:#fff;padding:12px;border-radius:16px}
 .lb-cap{color:#e8eef7;margin:0;font-size:14px}
 .lb-close{position:absolute;top:20px;right:22px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer}
-@media print{body{padding:0;background:#fff}.foot,.links-wrap,.theme-toggle{display:none}.qr{cursor:default}}
-.theme-toggle .ic-moon{display:none}
-:root[data-theme="dark"] .theme-toggle .ic-sun{display:none}
-:root[data-theme="dark"] .theme-toggle .ic-moon{display:block}
+@media print{body{padding:0;background:#fff}.foot,.links-wrap,.tools{display:none}.qr{cursor:default}}
+@media (max-width:520px){body{padding:36px 15px 44px}.tools{top:10px;right:10px}.icon-btn{width:34px;height:34px}.qrs{gap:28px}}
+.icon-btn .ic-moon{display:none}
+:root[data-theme="dark"] .icon-btn .ic-sun{display:none}
+:root[data-theme="dark"] .icon-btn .ic-moon{display:block}
 @media(prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .theme-toggle .ic-sun{display:none}
-  :root:not([data-theme="light"]) .theme-toggle .ic-moon{display:block}
+  :root:not([data-theme="light"]) .icon-btn .ic-sun{display:none}
+  :root:not([data-theme="light"]) .icon-btn .ic-moon{display:block}
 }`;
 }
 
@@ -895,22 +1027,40 @@ function main() {
   const width = qrList.length > 2 ? 180 : 220;
   for (const q of qrList) q.mdWidth = width;
 
+  // 三种产物共用同一份 src：--standalone 时是 base64，否则是相对路径
+  for (const q of qrList) {
+    q.cSrc = opt.standalone
+      ? dataUri(path.join(destDir, q.destName), q.destName.endsWith('.png') ? 'image/png' : 'image/jpeg')
+      : `${opt.imgBase}/${q.destName}`;
+  }
+
+  // 一份数据喂三种产物 —— HTML / React / Vue 必须严格同源，否则样本会对不上
+  const model = buildModel(opt, qrList, renderLinks(opt));
+
   const funding = renderFundingYml(opt, qrList);
   const mdBlock = renderMarkdown(opt, qrList);
   const sponsorsMd = renderStandaloneMd(opt, qrList);
-  const html = renderHtml(opt, qrList);
+  const html = renderHtml(opt, qrList, model);
+  const react = opt.noComponents ? null : renderReact(opt, model);
+  const vue = opt.noComponents ? null : renderVue(opt, model);
 
   if (opt.dryRun) {
     console.log('— dry-run —');
     console.log('图片 →', destDir + '/' + qrList.map(q => q.destName).join(', '));
     console.log('FUNDING.yml / SPONSORS.md / sponsors.html →', opt.out);
+    if (!opt.noComponents) console.log('SponsorCard.jsx / SponsorCard.vue →', opt.componentsDir);
     console.log('README:', injectReadme(opt, mdBlock).action);
     return;
   }
 
+  fs.mkdirSync(path.join(opt.out, '.github'), { recursive: true });
   fs.writeFileSync(path.join(opt.out, '.github', 'FUNDING.yml'), funding);
   fs.writeFileSync(path.join(opt.out, 'SPONSORS.md'), sponsorsMd);
   fs.writeFileSync(path.join(opt.out, 'sponsors.html'), html);
+
+  const jsxFile = path.join(opt.componentsDir, 'SponsorCard.jsx');
+  const vueFile = path.join(opt.componentsDir, 'SponsorCard.vue');
+  if (react) { fs.mkdirSync(opt.componentsDir, { recursive: true }); fs.writeFileSync(jsxFile, react); fs.writeFileSync(vueFile, vue); }
 
   let readmeInfo = null;
   if (!opt.noReadme) readmeInfo = injectReadme(opt, mdBlock);
@@ -927,6 +1077,10 @@ function main() {
   console.log(`  ✓ FUNDING.yml        ${rel(path.join(opt.out, '.github', 'FUNDING.yml'))}`);
   console.log(`  ✓ SPONSORS.md        ${rel(path.join(opt.out, 'SPONSORS.md'))}`);
   console.log(`  ✓ sponsors.html      ${rel(path.join(opt.out, 'sponsors.html'))}  (${kb(Buffer.byteLength(html))}${opt.standalone ? '，含内嵌图片' : ''})`);
+  if (react) {
+    console.log(`  ✓ SponsorCard.jsx    ${rel(jsxFile)}  (${kb(Buffer.byteLength(react))})`);
+    console.log(`  ✓ SponsorCard.vue    ${rel(vueFile)}  (${kb(Buffer.byteLength(vue))})`);
+  }
   if (readmeInfo) console.log(`  ✓ README 区块        ${rel(readmeInfo.file)}  [${readmeInfo.action}]`);
   const exts = Object.keys(FUNDING_PLATFORMS).filter(k => opt.links[k]);
   const chan = [];
@@ -935,6 +1089,7 @@ function main() {
   console.log(`  ${'─'.repeat(44)}`);
   console.log(`  Sponsor 按钮渠道：${chan.length ? chan.join(' · ') : '无（建议补一个 --paypal / --kofi）'}`);
   console.log(`  QR 展示渠道：${qrList.map(q => q.label).join(' · ')}`);
+  console.log(`  默认语言：${opt.lang}（可切换：${opt.langs.join(' / ')}）`);
   console.log(`  打开预览：open ${path.join(opt.out, 'sponsors.html')}\n`);
 }
 

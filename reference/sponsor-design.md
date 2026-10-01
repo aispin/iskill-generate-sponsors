@@ -89,3 +89,21 @@ Markdown 原生图片语法**没法控制尺寸**。收款码原图动辄 1700×
 - 展示宽 220px，Retina 需要 440px，800 有充足余量，再大纯属浪费仓库体积。
 - 优先用 macOS 自带 `sips`（零依赖）；没有 `sips` 的环境原样拷贝，不阻断流程。
 - **不动原图的构图**：收款海报自带品牌和名称，比裁成一个孤零零的码更好认。
+
+## 四、组件版式（SponsorCard.jsx / .vue）
+
+- **同源原则**：组件与 `sponsors.html` 共用 `lib/model.mjs`（数据 + 双语文案）和
+  `lib/component-css.mjs`（样式骨架）。改版式只改这两处，三个产物一起变。
+- **scoped 策略**：Vue 用 `<style scoped>`（编译期加属性选择器）；React 用内联
+  `<style>` 包**单标签选择器**（`.sp-card{...}` 不带上下文），天然不冲突、也不用
+  引 CSS-in-JS。类名统一 `sp-` 前缀兜底。
+- **主题**：`theme` prop 直接落到根元素 `data-theme="light|dark"`；不传时组件样式里
+  用 `:not([data-theme="light"])` + `prefers-color-scheme` 跟随系统。
+  **同页多实例可以一个亮一个暗，互不干扰**（已 SSR 验收）。
+- **语言**：`lang` prop 控制初始语言；`show-tools` 控制右上角切换按钮（嵌文档页时关掉）。
+- **验收铁律**：组件必须真编译 + SSR 渲染过才算数——
+  React：`renderToStaticMarkup` 直出后断言关键文案；
+  Vue：`@vue/compiler-sfc` parse/compile 后 `vue/server-renderer` 渲染。
+  裸 SSR 的 SFC 模块要手动设 `__sfc__.__scopeId`，否则 scoped 属性不落 DOM（Vite 会自动做）。
+- **SFC 顶层注释禁写 `<template>` 字样**：`@vue/compiler-sfc` 的块解析不管 HTML 注释，
+  见到 `<template>` 就当块开始，整个文件解析失败。用法说明放 `<script>` 的 JS 注释里。
