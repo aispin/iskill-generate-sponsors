@@ -117,7 +117,7 @@ node scripts/gen-sponsors.mjs --help
 | `sponsors.html` | 单文件美观网页（响应式，自带中/英切换 + 深浅主题） |
 | `index.html` | 开发者用的源码复制页（中英双语）：全部文本产物分栏展示、一键复制、底部 iframe 实时预览赞助页（`--no-source` 关掉） |
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，嵌进任意 React / Vue 项目 |
-| `sponsor/*.jpg` | 收款码的 Pages 镜像（GitHub Pages 硬封锁 `.github/*`，html 引用走这份） |
+| `<pagesImgBase>/*.jpg` | 收款码的 Pages 镜像（GitHub Pages 硬封锁 `.github/*`，html 引用走这份；默认 `sponsor/`，本仓库用 `assets/sponsor/`） |
 | `README.md` 区块 | marker 包裹，重跑只替换这一块 |
 
 所有页面与组件的语言默认**跟随系统**（`navigator.language`，zh* → 中文、其余 → 英文），
@@ -177,7 +177,8 @@ Open Collective / Polar / Buy Me a Coffee / IssueHunt / thanks.dev），加**最
 
 把 `index.html` / `sponsors.html` 发到 GitHub Pages（用户/项目站均可）时，`.github/sponsor/`
 下的收款码图**永远是 404**——Pages 硬封锁 `.github` 路径，提交 `.nojekyll` 也没用。
-本技能的解法：图片压完**镜像一份到非点目录 `sponsor/`**，html（含 iframe 链路）引用它；
+本技能的解法：图片压完**镜像一份到非点目录**（默认 `sponsor/`，建议 `--pages-img-base assets/sponsor`
+让静态 demo 内聚到 assets/ 下），html（含 iframe 链路）引用它；
 README 区块保持 `.github/sponsor/`（GitHub 仓库内渲染不受影响）。
 `--pages-img-base` 可改镜像目录；显式设成与 `--img-base` 相同可关闭镜像。
 

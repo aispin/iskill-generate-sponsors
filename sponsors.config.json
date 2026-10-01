@@ -5,6 +5,7 @@
   "tagline": "如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕",
   "accent": "#10C8A1",
   "imgBase": ".github/sponsor",
+  "pagesImgBase": "assets/sponsor",
   "max": 800,
   "style": "card",
   "lang": "zh",

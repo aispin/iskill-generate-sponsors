@@ -71,7 +71,7 @@ export const SPONSOR_DATA = {
   "qr": [
     {
       "key": "alipay",
-      "src": "sponsor/alipay.jpg",
+      "src": "assets/sponsor/alipay.jpg",
       "accent": "#1677FF",
       "label": {
         "zh": "支付宝",
@@ -84,7 +84,7 @@ export const SPONSOR_DATA = {
     },
     {
       "key": "wechat",
-      "src": "sponsor/wechat.jpg",
+      "src": "assets/sponsor/wechat.jpg",
       "accent": "#07C160",
       "label": {
         "zh": "微信",
