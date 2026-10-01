@@ -8,6 +8,7 @@
  *
  * 双语：与 sponsors.html 共享 localStorage key `sponsor-lang` / `sponsor-theme`，
  * 兜底顺序 #lang= / #theme= → localStorage → 系统语言（navigator.language，zh* → 中文）→ 生成配置 --lang。
+ * 与 iframe 实时预览走 sponsorSync postMessage 双向同步（切语言即时生效，无 ack 则重载 iframe 兜底）。
  *
  * 源码用隐藏 <textarea> 承载（只有 </textarea> 能截断它，产出的 md/yml/jsx/vue
  * 都不会包含），展示时用 textContent 写进 <pre>，复制时直接取 .value ——
@@ -256,9 +257,45 @@ ${panes}
       var lang = b.dataset.setLang;
       applyLang(lang);
       try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}   // 与 sponsors.html 共享
+      syncFrame();
     });
   });
   applyLang(curLang());
+
+  /* ── 与 iframe 里的 sponsors.html 双向同步 ──
+     正向：本页切语言 → postMessage 通知 iframe（收到 ack 才算新页面）；
+     250ms 无 ack 视为老版赞助页（没有监听器）→ 重载 iframe 让头脚本读 localStorage。
+     反向：iframe 里切了语言/主题 → sponsorSync 回传，本页跟随并写 localStorage。 */
+  var acked = false;
+  function syncFrame() {
+    var f = document.querySelector('.preview iframe');
+    if (!f) return;
+    acked = false;
+    try {
+      f.contentWindow.postMessage({
+        sponsorSync: 1,
+        sponsorLang: curLang(),
+        sponsorTheme: document.documentElement.getAttribute('data-theme') || ''
+      }, '*');
+    } catch (e) {}
+    setTimeout(function () {
+      if (!acked) { try { f.src = f.src; } catch (e) {} }
+    }, 250);
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data || {};
+    if (d.sponsorAck) acked = true;
+    if (d.sponsorSync) {
+      if (d.sponsorLang === 'zh' || d.sponsorLang === 'en') {
+        applyLang(d.sponsorLang);
+        try { localStorage.setItem('sponsor-lang', d.sponsorLang); } catch (err) {}
+      }
+      if (d.sponsorTheme === 'light' || d.sponsorTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', d.sponsorTheme);
+        try { localStorage.setItem('sponsor-theme', d.sponsorTheme); } catch (err) {}
+      }
+    }
+  });
 
   var codes = {};
   document.querySelectorAll('.pane').forEach(function (pane) {

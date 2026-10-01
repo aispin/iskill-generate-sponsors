@@ -666,6 +666,7 @@ var SPONSOR = ${embedJson(model)};
     var next = now === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     try { localStorage.setItem('sponsor-theme', next); } catch (e) {}
+    postSync(next);
   });
 
   /* ── 语言切换 ── */
@@ -674,6 +675,34 @@ var SPONSOR = ${embedJson(model)};
     lang = langs[(langs.indexOf(lang) + 1) % langs.length];
     apply(lang);
     try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}
+    postSync();
+  });
+
+  /* ── 被嵌入时（如 index.html 的实时预览 iframe）与父页双向同步 ──
+     收到父页的 sponsorSync：应用语言 / 主题（不回写 localStorage，父页已写），
+     然后回 ack —— 父页据此决定要不要走「重载 iframe」的兜底。 */
+  function postSync(theme) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          sponsorSync: 1,
+          sponsorLang: lang,
+          sponsorTheme: theme || root.getAttribute('data-theme') || ''
+        }, '*');
+      }
+    } catch (e) {}
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data || {};
+    if (!d.sponsorSync) return;
+    if ((d.sponsorLang === 'zh' || d.sponsorLang === 'en') && langs.indexOf(d.sponsorLang) >= 0) {
+      lang = d.sponsorLang;
+      apply(lang);
+    }
+    if (d.sponsorTheme === 'light' || d.sponsorTheme === 'dark') {
+      root.setAttribute('data-theme', d.sponsorTheme);
+    }
+    try { e.source.postMessage({ sponsorAck: 1 }, '*'); } catch (err) {}
   });
 })();
 </script>

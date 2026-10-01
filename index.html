@@ -133,7 +133,7 @@ h1{
       </span>
     </header>
     <p class="meta">
-      <span data-zh="更新于" data-en="Generated">更新于</span> 2026-10-01 21:00:36
+      <span data-zh="更新于" data-en="Generated">更新于</span> 2026-10-01 21:04:55
       · <span data-zh="图片在" data-en="Images in">图片在</span> <code>.github/sponsor/</code>
       · <span data-zh="公开预览页" data-en="Public page">公开预览页</span> <a href="sponsors.html">sponsors.html</a>
     </p>
@@ -1269,9 +1269,45 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
       var lang = b.dataset.setLang;
       applyLang(lang);
       try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}   // 与 sponsors.html 共享
+      syncFrame();
     });
   });
   applyLang(curLang());
+
+  /* ── 与 iframe 里的 sponsors.html 双向同步 ──
+     正向：本页切语言 → postMessage 通知 iframe（收到 ack 才算新页面）；
+     250ms 无 ack 视为老版赞助页（没有监听器）→ 重载 iframe 让头脚本读 localStorage。
+     反向：iframe 里切了语言/主题 → sponsorSync 回传，本页跟随并写 localStorage。 */
+  var acked = false;
+  function syncFrame() {
+    var f = document.querySelector('.preview iframe');
+    if (!f) return;
+    acked = false;
+    try {
+      f.contentWindow.postMessage({
+        sponsorSync: 1,
+        sponsorLang: curLang(),
+        sponsorTheme: document.documentElement.getAttribute('data-theme') || ''
+      }, '*');
+    } catch (e) {}
+    setTimeout(function () {
+      if (!acked) { try { f.src = f.src; } catch (e) {} }
+    }, 250);
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data || {};
+    if (d.sponsorAck) acked = true;
+    if (d.sponsorSync) {
+      if (d.sponsorLang === 'zh' || d.sponsorLang === 'en') {
+        applyLang(d.sponsorLang);
+        try { localStorage.setItem('sponsor-lang', d.sponsorLang); } catch (err) {}
+      }
+      if (d.sponsorTheme === 'light' || d.sponsorTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', d.sponsorTheme);
+        try { localStorage.setItem('sponsor-theme', d.sponsorTheme); } catch (err) {}
+      }
+    }
+  });
 
   var codes = {};
   document.querySelectorAll('.pane').forEach(function (pane) {
