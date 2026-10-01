@@ -183,9 +183,20 @@ README 区块保持 `.github/sponsor/`（GitHub 仓库内渲染不受影响）�
 `--pages-img-base` 可改镜像目录；显式设成与 `--img-base` 相同可关闭镜像。
 
 在线预览发布（本项目实测可用）：Settings → Pages → **Deploy from a branch** → `main` / `(root)`，
-或 `gh api -X POST repos/<owner>/<repo>/pages -F 'source[branch]=main' -F 'source[path]=/'`。
+或 `gh api repos/<owner>/<repo>/pages -X POST -f 'source[branch]=main' -f 'source[path]=/'`。
 gh-pages 分支那套还在但不是必须——任何分支都行，本项目直接用 main。
 Actions 方式（需 token 有 `workflow` scope）见 [`reference/pages-workflow.sample.yml`](reference/pages-workflow.sample.yml)。
+
+**⚠️ 分支模式的目录只能选 `/`（根）或 `/docs`**，官方原话是
+「the source folder can either be the root of the repository (`/`) … or a `/docs` folder」——
+下拉框里**没有第三个选项**，无法指向 `sponsor/` 之类的自定义目录。
+所以本技能选 `/(root)`：`index.html` / `sponsors.html` 必须待在仓库根。
+代价是**仓库根整个变成网站根**，`SKILL.md`、`scripts/` 也会被静态服务公开——
+这对「仓库本身就是个演示站」的场景可以接受；若介意，把页面挪进 `docs/` 再选 `/docs`。
+
+> 四种部署模式（含免工作流方案）的完整对比与坑表见兄弟技能
+> [`iskill-promo-page/references/deploy-modes.md`](../iskill-promo-page/references/deploy-modes.md)。
+> 自检命令：`bash <promo-page>/scripts/pages.sh status <owner/repo>`。
 
 ### marker 必须独占一行
 

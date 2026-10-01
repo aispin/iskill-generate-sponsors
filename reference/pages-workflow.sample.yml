@@ -5,7 +5,13 @@
 #
 # 本仓库当前用的是更简单的 "Deploy from a branch" 模式：
 #   Settings → Pages → Source: Deploy from a branch → main / (root)
-#   （或 gh api -X POST repos/<owner>/<repo>/pages -F 'source[branch]=main' -F 'source[path]=/'）
+#   （或 gh api repos/<owner>/<repo>/pages -X POST -f 'source[branch]=main' -f 'source[path]=/'）
+#
+# ⚠️ 分支模式只认 `/`（根）与 `/docs` 两个目录（官方文档原话），无法指向自定义子目录。
+#    所以 html 必须待在仓库根；代价是仓库根整个变成网站根（SKILL.md / scripts/ 也会被公开）。
+#    介意的话就把页面挪进 docs/ 再选 /docs。四种模式对比见
+#    iskill-promo-page/references/deploy-modes.md
+#
 # 不需要本文件。想换 Actions 方式（不占分支、可加构建步骤）时：
 #   1) gh auth refresh -s workflow        # 推 workflow 文件需要 workflow scope
 #   2) 把本文件复制到 .github/workflows/pages.yml
