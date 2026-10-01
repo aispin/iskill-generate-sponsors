@@ -117,6 +117,11 @@ h1{
 .meta a:hover{text-decoration:underline}
 
 .layout{display:grid;grid-template-columns:218px 1fr;gap:18px;align-items:start}
+.preview{margin-top:30px}
+.preview h2{font-size:15px;font-weight:700;margin:0 0 12px}
+.preview h2 small{color:var(--ink2);font-weight:400;font-size:12px;margin-left:9px}
+.frame{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);background:var(--card)}
+.frame iframe{display:block;width:100%;height:min(860px,120vh);border:0}
 .tabs{display:grid;gap:6px;position:sticky;top:18px}
 .tab{
   text-align:left;cursor:pointer;padding:10px 13px;border-radius:12px;
@@ -162,6 +167,11 @@ ${headBrand}
     </nav>
 ${panes}
   </div>
+
+  <section class="preview">
+    <h2>实时预览<small>sponsors.html · iframe 现场渲染，非截图</small></h2>
+    <div class="frame"><iframe src="sponsors.html" title="sponsors.html 实时预览" loading="lazy"></iframe></div>
+  </section>
 </main>
 
 <script>
