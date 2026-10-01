@@ -119,6 +119,8 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --prefix <前缀>          输出图片文件名前缀（默认空）
   --max <像素>             图片长边上限（默认 800）
   --style card|minimal     html 风格（默认 card；React/Vue 组件恒为 card）
+  --mode inline|popup      页面形态（默认 inline 整页展示）；popup 时页面只放一个
+                           赞助按钮，点开弹层展示全部方式，ESC / 点遮罩 / × 关闭
   --standalone             图片转 base64 内嵌，产物自包含（html 与组件都生效）
   --no-components          不输出 SponsorCard.jsx / SponsorCard.vue
   --no-source              不输出 index.html（源码一键复制页）
@@ -222,6 +224,8 @@ function buildOptions(args) {
     prefix: args.prefix ?? cfg.prefix ?? '',
     max: Number(args.max || cfg.max || 800),
     style: args.style || cfg.style || 'card',
+    // 页面形态：inline=整页展示（默认）；popup=页面只放一个赞助按钮，点开弹层
+    mode: args.mode === 'popup' || cfg.mode === 'popup' ? 'popup' : 'inline',
     standalone: !!args.standalone || !!cfg.standalone,
     skipCrop: !!args.skipCrop || !!cfg.skipCrop,
     noReadme: !!args.noReadme,
@@ -524,7 +528,7 @@ function renderHtml(opt, qrList, model) {
     : `<p class="empty">${t.empty}</p>`;
 
   const multi = opt.langs.length > 1;
-  const css = minimal ? cssMinimal() : cssCard();
+  const css = (minimal ? cssMinimal() : cssCard()) + (opt.mode === 'popup' ? cssPopup() : '');
 
   return `<!DOCTYPE html>
 <html lang="${lang === 'en' ? 'en' : 'zh-CN'}">
@@ -564,6 +568,29 @@ ${css}
     <span class="ic-sun">${ICON.sun}</span><span class="ic-moon">${ICON.moon}</span>
   </button>
 </div>
+${opt.mode === 'popup' ? `
+<main class="wrap pop-host">
+  <button class="sponsor-btn" type="button" style="--brand:${opt.accent}" aria-haspopup="dialog" aria-label="${esc(t.popAria)}">
+    ${ICON.heart}<span data-slot="pop-label">${esc(t.badge)}</span>
+  </button>
+</main>
+<div class="pop" hidden role="dialog" aria-modal="true">
+  <div class="pop-card">
+    <button class="pop-close" type="button" aria-label="${esc(t.popCloseAria)}">×</button>
+    <header class="hero pop-head">
+      <span class="badge">${ICON.heart}<span data-slot="badge">${esc(t.badge)}</span></span>
+      <h1 data-slot="title">${esc(L0('title'))}</h1>
+    </header>
+
+    <section class="qrs">
+${cards}
+${buttons}
+    </section>
+
+    ${L0('note') ? `<p class="note" data-slot="note">${esc(L0('note'))}</p>` : ''}
+  </div>
+</div>
+` : `
 <main class="wrap">
   <header class="hero">
     <span class="badge">${ICON.heart}<span data-slot="badge">${esc(t.badge)}</span></span>
@@ -580,6 +607,7 @@ ${buttons}
 
   <footer class="foot" data-slot="foot">${L0('foot')}</footer>
 </main>
+`}
 
 <div class="lightbox" hidden>
   <button class="lb-close" type="button" aria-label="${esc(t.closeAria)}">×</button>
@@ -622,6 +650,9 @@ var SPONSOR = ${embedJson(model)};
     all('.theme-toggle',            function (e) { e.setAttribute('aria-label', t.themeAria); e.setAttribute('title', t.themeAria); });
     all('.lang-toggle',             function (e) { e.setAttribute('aria-label', t.langAria); e.setAttribute('title', t.langAria); });
     all('.lb-close',                function (e) { e.setAttribute('aria-label', t.closeAria); });
+    all('[data-slot="pop-label"]',  function (e) { e.textContent = t.badge; });
+    all('.sponsor-btn',             function (e) { e.setAttribute('aria-label', t.popAria); });
+    all('.pop-close',               function (e) { e.setAttribute('aria-label', t.popCloseAria); });
 
     all('.card[data-i]', function (c) {
       var q = SPONSOR.qr[+c.dataset.i];
@@ -660,7 +691,23 @@ var SPONSOR = ${embedJson(model)};
     var c = e.target.closest ? e.target.closest('.lb-close') : null;
     if (c) close();
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!lb.hidden) close();                       // 灯箱开着先关灯箱
+    else if (pop && !pop.hidden) popClose();       // 其次关弹层
+  });
+
+  /* ── 弹层模式（--mode popup）：赞助按钮 → 弹层 ── */
+  var pop = document.querySelector('.pop');
+  var popBtn = document.querySelector('.sponsor-btn');
+  function popOpen() { pop.hidden = false; if (popBtn) popBtn.style.visibility = 'hidden'; document.body.style.overflow = 'hidden'; }
+  function popClose() { pop.hidden = true; if (popBtn) popBtn.style.visibility = ''; if (lb.hidden) document.body.style.overflow = ''; }
+  if (popBtn && pop) {
+    popBtn.addEventListener('click', popOpen);
+    pop.addEventListener('click', function (e) {
+      if (e.target === pop || (e.target.closest && e.target.closest('.pop-close'))) popClose();
+    });
+  }
 
   /* ── 主题切换 ── */
   var tBtn = document.querySelector('.theme-toggle');
@@ -893,7 +940,7 @@ body{
 .icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .lightbox{
-  position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+  position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:16px;
   background:rgba(9,16,28,.78);backdrop-filter:blur(10px);
   padding:32px;cursor:zoom-out;animation:fade .18s ease;
@@ -937,6 +984,46 @@ body{
   .lightbox{padding:20px}
   .lb-close{top:14px;right:16px}
 }`;
+}
+
+/* 弹层模式（--mode popup）专属样式，inline 模式不携带 */
+function cssPopup() {
+  return `
+.pop-host{min-height:72vh;display:flex;align-items:center;justify-content:center}
+.sponsor-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 22px;border-radius:999px;cursor:pointer;
+  font:inherit;font-size:14px;font-weight:700;letter-spacing:.04em;
+  color:#fff;border:0;
+  background:linear-gradient(135deg,var(--brand,#10C8A1),color-mix(in srgb,var(--brand,#10C8A1) 55%,#6366F1));
+  box-shadow:0 10px 26px -12px color-mix(in srgb,var(--brand,#10C8A1) 70%,transparent);
+  transition:transform .18s,box-shadow .18s;
+}
+.sponsor-btn svg{width:16px;height:16px}
+.sponsor-btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -12px color-mix(in srgb,var(--brand,#10C8A1) 80%,transparent)}
+.sponsor-btn:focus-visible{outline:2px solid var(--brand,#10C8A1);outline-offset:3px}
+
+.pop{
+  position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  background:rgba(9,16,28,.62);backdrop-filter:blur(8px);
+  padding:22px;animation:fade .18s ease;
+}
+.pop[hidden]{display:none}
+.pop-card{
+  position:relative;width:min(560px,94vw);max-height:86vh;overflow:auto;
+  background:var(--card);border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow-hi);padding:22px 22px 18px;
+}
+.pop-head{margin-bottom:16px}
+.pop-head h1{font-size:19px;margin:12px 0 0}
+.pop-close{
+  position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--line);background:var(--ui-bg);color:var(--ink2);
+  font-size:18px;line-height:1;cursor:pointer;
+}
+.pop-close:hover{color:var(--ink)}
+.pop-card .note{margin-top:14px}
+.pop-card .qrs{gap:12px}`;
 }
 
 function cssMinimal() {
@@ -998,7 +1085,7 @@ body{
 .icon-btn{width:38px;height:38px;border-radius:12px;padding:0;display:grid;place-items:center;cursor:pointer;color:var(--ink2);background:var(--ui-bg);border:1px solid var(--ui-line);backdrop-filter:blur(10px);font-family:inherit;font-size:12.5px;font-weight:700}
 .icon-btn:hover{color:var(--ink)}
 .icon-btn svg{width:18px;height:18px}
-.lightbox{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(9,16,28,.8);padding:32px;cursor:zoom-out}
+.lightbox{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(9,16,28,.8);padding:32px;cursor:zoom-out}
 .lightbox[hidden]{display:none}
 .lightbox img{max-width:min(420px,86vw);max-height:76vh;background:#fff;padding:12px;border-radius:16px}
 .lb-cap{color:#e8eef7;margin:0;font-size:14px}

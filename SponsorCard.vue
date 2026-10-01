@@ -146,6 +146,8 @@ const SPONSOR_DATA = {
       "themeAria": "切换深色 / 浅色",
       "langAria": "切换中文 / English",
       "closeAria": "关闭放大图",
+      "popAria": "打开赞助弹窗",
+      "popCloseAria": "关闭赞助弹窗",
       "langShort": "EN",
       "empty": "还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字</code> 再来一次。"
     },
@@ -158,6 +160,8 @@ const SPONSOR_DATA = {
       "themeAria": "Toggle dark / light mode",
       "langAria": "Switch between 中文 / English",
       "closeAria": "Close",
+      "popAria": "Open sponsor popup",
+      "popCloseAria": "Close sponsor popup",
       "langShort": "中",
       "empty": "No external sponsor links yet. Add one with <code>--paypal https://paypal.me/yourname</code>, then re-run."
     }

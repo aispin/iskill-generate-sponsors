@@ -23,6 +23,8 @@ export const UI = {
     themeAria: '切换深色 / 浅色',
     langAria: '切换中文 / English',
     closeAria: '关闭放大图',
+    popAria: '打开赞助弹窗',
+    popCloseAria: '关闭赞助弹窗',
     langShort: 'EN',   // 当前为中文时，按钮上显示的「切到另一种语言」短标
     empty: '还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字</code> 再来一次。',
   },
@@ -35,6 +37,8 @@ export const UI = {
     themeAria: 'Toggle dark / light mode',
     langAria: 'Switch between 中文 / English',
     closeAria: 'Close',
+    popAria: 'Open sponsor popup',
+    popCloseAria: 'Close sponsor popup',
     langShort: '中',
     empty: 'No external sponsor links yet. Add one with <code>--paypal https://paypal.me/yourname</code>, then re-run.',
   },

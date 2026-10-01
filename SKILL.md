@@ -1,6 +1,6 @@
 ---
 name: iskill-generate-sponsors
-summary: 把一张收款码图片（微信/支付宝/PayPal/任意）变成一整套可直接用的赞助页——.github/FUNDING.yml（GitHub 右上角 Sponsor 按钮）+ 可粘进任何 Markdown 的 SPONSORS.md 区块 + 响应式中英双语 sponsors.html + 零依赖 scoped 样式的 React/Vue 组件。零三方依赖，二维码自动裁剪 + 图片自动压缩，排版紧凑低调，README 区块可重复运行覆盖。
+summary: 把一张收款码图片（微信/支付宝/PayPal/任意）变成一整套可直接用的赞助页——.github/FUNDING.yml（GitHub 右上角 Sponsor 按钮）+ 可粘进任何 Markdown 的 SPONSORS.md 区块 + 响应式中英双语 sponsors.html（inline 整页 / popup 弹层两种形态）+ 零依赖 scoped 样式的 React/Vue 组件。零三方依赖，二维码自动裁剪 + 图片自动压缩，排版紧凑低调，README 区块可重复运行覆盖。
 description: 当用户想给自己的开源项目/仓库/文档加「赞赏」「赞助」「打赏」「收款码」「赞助按钮」时使用。触发词：赞赏、赞助、打赏、收款码、赞助页、FUNDING.yml、Sponsor 按钮、buy me a coffee、ko-fi、paypal.me、liberapay、给项目加个赞赏。输入微信/支付宝静态收款码图片（或任何用户提供的图片），输出 md + html（响应式、中英双语切换）+ React/Vue 组件 + FUNDING.yml，图片落 .github/sponsor/ 并在 README 内联展示。微信/支付宝收款码无法写进 FUNDING.yml，本技能会自动内联到 README 并在 FUNDING.yml 里留注释指路。
 agent_created: true
 ---
@@ -100,6 +100,7 @@ node scripts/gen-sponsors.mjs --help
 | `--prefix <前缀>` | 输出图片文件名前缀 |
 | `--max <像素>` | 图片长边上限，默认 800 |
 | `--style card\|minimal` | HTML 风格，默认 `card` |
+| `--mode inline\|popup` | 页面形态：`inline` 整页展示（默认）；`popup` 页面只放一个赞助按钮，点开弹层展示全部方式（ESC / 点遮罩 / × 关闭） |
 | `--standalone` | HTML 内嵌 base64 图片，单文件可直接发给别人 |
 | `--lang zh\|en` | 默认语言（默认 `zh`） |
 | `--langs zh,en` | 可选语言集合；只给一种时隐藏切换按钮 |
@@ -116,7 +117,7 @@ node scripts/gen-sponsors.mjs --help
 | `.github/sponsor/*.jpg` | 压缩后的收款码，专供 README 内联 |
 | `.github/FUNDING.yml` | 仓库右上角 Sponsor 按钮 |
 | `SPONSORS.md` | 完整赞助页 + 嵌入说明 |
-| `sponsors.html` | 单文件美观网页（响应式，自带中/英切换 + 深浅主题） |
+| `sponsors.html` | 单文件美观网页（响应式，自带中/英切换 + 深浅主题；`--mode popup` 时只渲染一个赞助按钮 + 弹层，见 `assets/sample-popup.jpg`） |
 | `index.html` | 开发者用的源码复制页（中英双语）：全部文本产物分栏展示、一键复制、底部 iframe 实时预览赞助页（`--no-source` 关掉） |
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，嵌进任意 React / Vue 项目 |
 | `<pagesImgBase>/*.jpg` | 收款码的 Pages 镜像（GitHub Pages 硬封锁 `.github/*`，html 引用走这份；默认 `sponsor/`，本仓库用 `assets/sponsor/`） |
