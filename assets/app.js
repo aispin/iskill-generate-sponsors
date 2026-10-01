@@ -374,6 +374,55 @@
     });
   }
 
+  /* ── 平台兼容性标签（Hero 标题上方，「AI 技能」右边那枚）─────────────────
+     为什么要有它：这些技能不少是「macOS 写脚本、Windows 跑不了」的，
+     再不然就是依赖 ffmpeg / sips / 剪映 这类有明显平台差异的东西 ——
+     用户扫一眼落地页就想知道「我这台机器能不能用」。这是**操作系统**兼容性，
+     与「能装在哪家 agent」（Claude Code / Cursor…）是两码事，后者仍不进标签。 */
+  var OS_LABEL = {
+    "mac-windows": { zh: "macOS / Windows", en: "macOS / Windows" },
+    "macos":       { zh: "仅 macOS",        en: "macOS only" },
+    "windows":     { zh: "仅 Windows",      en: "Windows only" },
+    "linux":       { zh: "仅 Linux",        en: "Linux only" },
+    "all":         { zh: "全平台",          en: "All platforms" }
+  };
+
+  function renderPlatformBadge(lang) {
+    var host = qs("#hero-os");
+    if (!host) {
+      /* 老页面：骨架里还没有这枚 badge（模板升级了、但那个页面的 index.html 没跟着换）。
+         就地补一个 —— 这样「只同步 app.js / style.css」就能拿到平台标签，
+         不用去动人家已经改过 meta 与品牌名的 index.html。 */
+      var first = qs(".hero .badge");
+      if (!first || !first.parentNode) return;
+      var row = first.parentNode;
+      if (!row.classList || !row.classList.contains("hero-kicker")) {
+        row = document.createElement("div");
+        row.className = "hero-kicker";
+        first.parentNode.insertBefore(row, first);
+        row.appendChild(first);
+      }
+      host = document.createElement("span");
+      host.className = "badge badge-os";
+      host.id = "hero-os";
+      host.hidden = true;
+      row.appendChild(host);
+    }
+    var p = P.platform, text = "";
+    if (p && typeof p === "object") {
+      text = slotText(p, lang);                       // { zh, en } 自定义
+    } else if (p) {
+      var hit = OS_LABEL[p];
+      text = hit ? (hit[lang] || hit.zh) : String(p); // 未知键原样显示，便于作者自查
+    }
+    if (!text) { host.hidden = true; host.innerHTML = ""; return; }  // 不配 = 不显示
+    var ic = (window.PROMO_ICONS || {}).monitor || "";
+    host.innerHTML = ic + "<span></span>";
+    host.querySelector("span").textContent = text;
+    host.setAttribute("title", (lang === "en" ? "Verified on " : "已在以下系统验证：") + text);
+    host.hidden = false;
+  }
+
   function render(lang) {
     var dict = (P.lang && (P.lang[lang] || P.lang.zh)) || {};
     UI = {
@@ -382,6 +431,7 @@
       failed: uiText(dict, "failed", "复制失败")
     };
     applyText(dict);
+    renderPlatformBadge(lang);
     renderTerminal((dict.terminal || {}).title, (dict.terminal || {}).lines);
     renderStats(dict.stats);
     renderCompare(dict.compare);

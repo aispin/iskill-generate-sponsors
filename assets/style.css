@@ -224,6 +224,13 @@ h2.sec-title { font-size: clamp(26px, 3.4vw, 38px); }
   color: var(--ink-2); border: 1px solid var(--line-strong); background: var(--panel);
 }
 .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 22%, transparent); }
+/* Hero 标题上方的标签行：「AI 技能」+（可选）平台兼容性 */
+.hero-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
+.hero-kicker .badge { margin-bottom: 0; }
+/* 平台兼容性标签：用图标代替那个发光圆点，并稍微弱化（它是次要信息） */
+.badge-os { gap: 6px; color: var(--ink-3); }
+.badge-os svg { width: 14px; height: 14px; color: var(--brand); flex: none; }
+.badge-os[hidden] { display: none; }
 h1.hero-title { font-size: clamp(34px, 5.4vw, 58px); font-weight: 800; letter-spacing: -0.035em; }
 .hero-title .accent {
   background: linear-gradient(120deg, var(--brand) 8%, var(--brand2) 92%);
