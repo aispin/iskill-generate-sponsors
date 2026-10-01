@@ -158,7 +158,15 @@ const props = defineProps({
 });
 
 const d = computed(() => props.data || SPONSOR_DATA);
-const lang = ref(props.lang || d.value.defaultLang || 'zh');
+// 跟随系统语言：zh* → 中文，其余 → 英文；SSR/未知语言返回 '' 走 defaultLang
+function sysLang() {
+  try {
+    var l = (navigator.language || navigator.userLanguage || '').toLowerCase();
+    if (!l || l === 'und') return '';
+    return l.indexOf('zh') === 0 ? 'zh' : 'en';
+  } catch (e) { return ''; }
+}
+const lang = ref(props.lang || sysLang() || d.value.defaultLang || 'zh');
 const theme = ref(props.theme || '');
 const zoom = ref(-1);
 

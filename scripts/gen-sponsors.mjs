@@ -535,8 +535,14 @@ function renderHtml(opt, qrList, model) {
   function store(k){ try { return localStorage.getItem('sponsor-' + k); } catch (e) { return null; } }
   var th = hval('theme', 'light|dark') || store('theme');
   if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th);
-  var lg = hval('lang', 'zh|en') || store('lang');
+  var lg = hval('lang', 'zh|en') || store('lang') || sysLang('${opt.lang === 'en' ? 'en' : 'zh'}');
   if (lg === 'zh' || lg === 'en') document.documentElement.setAttribute('data-lang', lg);
+  function sysLang(def){
+    try { var l = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      if (!l || l === 'und') return def;               // SSR / 未知语言 → 生成配置默认
+      return l.indexOf('zh') === 0 ? 'zh' : 'en';      // zh-CN/zh-TW/zh-HK → 中文，其余 → 英文
+    } catch (e) { return def; }
+  }
 })();
 </script>
 <style>

@@ -345,6 +345,14 @@ const sysDark = () =>
   typeof window !== 'undefined' && window.matchMedia
     ? window.matchMedia('(prefers-color-scheme: dark)').matches
     : false;
+// 跟随系统语言：zh* → 中文，其余 → 英文；SSR/未知语言返回 '' 走 data.defaultLang
+const sysLang = () => {
+  try {
+    const l = (navigator.language || navigator.userLanguage || '').toLowerCase();
+    if (!l || l === 'und') return '';
+    return l.indexOf('zh') === 0 ? 'zh' : 'en';
+  } catch (e) { return ''; }
+};
 
 export default function SponsorCard({
   data,
@@ -355,7 +363,7 @@ export default function SponsorCard({
   style,
 }) {
   const d = data || SPONSOR_DATA;
-  const [lang, setLang] = useState(langProp || d.defaultLang || 'zh');
+  const [lang, setLang] = useState(langProp || sysLang() || d.defaultLang || 'zh');
   const [theme, setTheme] = useState(themeProp || '');
   const [zoom, setZoom] = useState(-1);
 

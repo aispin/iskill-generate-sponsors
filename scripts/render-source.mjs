@@ -7,7 +7,7 @@
  * 构建时读进来内联（页面保持单文件零依赖），同时做成 data URI favicon。
  *
  * 双语：与 sponsors.html 共享 localStorage key `sponsor-lang` / `sponsor-theme`，
- * 兜底顺序 #lang= / #theme= → localStorage → 生成配置 --lang。
+ * 兜底顺序 #lang= / #theme= → localStorage → 系统语言（navigator.language，zh* → 中文）→ 生成配置 --lang。
  *
  * 源码用隐藏 <textarea> 承载（只有 </textarea> 能截断它，产出的 md/yml/jsx/vue
  * 都不会包含），展示时用 textContent 写进 <pre>，复制时直接取 .value ——
@@ -102,14 +102,20 @@ export function renderSourceHtml(opt, artifacts) {
 ${favicon ? `<link rel="icon" type="image/svg+xml" href="${favicon}">` : ''}
 <meta name="color-scheme" content="light dark">
 <script>
-/* 与 sponsors.html 同款兜底：#lang= / #theme= → localStorage(sponsor-lang / sponsor-theme) → 生成配置。
+/* 与 sponsors.html 同款兜底：#lang= / #theme= → localStorage(sponsor-lang / sponsor-theme) → 系统语言 → 生成配置。
    语言在头脚本里就位，避免首帧闪错语言。 */
 try{
   var lm=(location.hash||'').match(/lang=(zh|en)/);
-  var lang=lm?lm[1]:localStorage.getItem('sponsor-lang');
+  var lang=lm?lm[1]:localStorage.getItem('sponsor-lang')||sysLang('${opt.lang === 'en' ? 'en' : 'zh'}');
   if(lang!=='zh'&&lang!=='en')lang='${opt.lang === 'en' ? 'en' : 'zh'}';
   document.documentElement.setAttribute('data-lang',lang);
   document.documentElement.setAttribute('lang',lang==='en'?'en':'zh-CN');
+  function sysLang(def){
+    try { var l=(navigator.language||navigator.userLanguage||'').toLowerCase();
+      if(!l||l==='und')return def;            // SSR / 未知语言 → 生成配置默认
+      return l.indexOf('zh')===0?'zh':'en';   // zh* → 中文，其余 → 英文
+    } catch(e){ return def; }
+  }
   var tm=(location.hash||'').match(/theme=(light|dark)/);
   var th=tm?tm[1]:localStorage.getItem('sponsor-theme');
   if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th);

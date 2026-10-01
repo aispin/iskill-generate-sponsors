@@ -118,6 +118,9 @@ node scripts/gen-sponsors.mjs --help
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，嵌进任意 React / Vue 项目 |
 | `README.md` 区块 | marker 包裹，重跑只替换这一块 |
 
+所有页面与组件的语言默认**跟随系统**（`navigator.language`，zh* → 中文、其余 → 英文），
+完整兜底链：`#lang=` hash → localStorage（跨页共享）→ 系统语言 → `--lang` 配置默认。
+
 ## React / Vue 组件
 
 两个组件与 `sponsors.html` **同源**：同一份 `buildModel()` 数据、同一份 `component-css.mjs`
