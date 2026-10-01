@@ -1,7 +1,16 @@
-# GitHub Pages：把 index.html / sponsors.html / 收款码发布为在线预览
-# URL: https://aispin.github.io/iskill-generate-sponsors/
-# 首次启用：Settings → Pages → Build and deployment → Source 选 "GitHub Actions"，
-# 或 gh api -X POST repos/aispin/iskill-generate-sponsors/pages -f build_type=workflow
+# GitHub Pages 发布样例（Actions 方式）
+# ============================================================
+# 注意：GitHub Pages 硬封锁 .github/* 路径（.nojekyll 也不放行），
+# 所以页面引用的图片走非点目录 sponsor/（生成器已自动镜像一份）。
+#
+# 本仓库当前用的是更简单的 "Deploy from a branch" 模式：
+#   Settings → Pages → Source: Deploy from a branch → main / (root)
+#   （或 gh api -X POST repos/<owner>/<repo>/pages -F 'source[branch]=main' -F 'source[path]=/'）
+# 不需要本文件。想换 Actions 方式（不占分支、可加构建步骤）时：
+#   1) gh auth refresh -s workflow        # 推 workflow 文件需要 workflow scope
+#   2) 把本文件复制到 .github/workflows/pages.yml
+#   3) gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
+# ============================================================
 name: Deploy Pages
 
 on:
@@ -10,7 +19,7 @@ on:
     paths:
       - 'index.html'
       - 'sponsors.html'
-      - '.github/sponsor/**'
+      - 'sponsor/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -31,12 +40,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 只发布预览所需文件；保留 .github/sponsor/ 目录结构以维持页面里的相对路径
+      # 只发布预览所需文件（html 引用的是 sponsor/，保持相对路径即可）
       - name: Stage site
         run: |
-          mkdir -p _site/.github/sponsor
+          mkdir -p _site
           cp index.html sponsors.html _site/
-          cp .github/sponsor/*.jpg _site/.github/sponsor/
+          cp -r sponsor _site/sponsor
 
       - uses: actions/configure-pages@v5
 

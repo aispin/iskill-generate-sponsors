@@ -203,7 +203,7 @@ function buildOptions(args) {
     }
   }
 
-  return {
+  const opt = {
     name, project, tagline, title,
     titleEn, taglineEn, noteEn,
     lang: args.lang || cfg.lang || 'zh',
@@ -214,6 +214,9 @@ function buildOptions(args) {
     from: args.from || cfg.from || '',
     out: path.resolve(args.out || cfg.out || '.'),
     imgBase: trimSlash(args.imgBase || cfg.imgBase || '.github/sponsor'),
+    // GitHub Pages 硬封锁 .github/* 路径（.nojekyll 也不放行）→ html 里的图片
+    // 引用改用这个非点目录（图片会镜像一份）；置为与 imgBase 相同可关闭镜像
+    pagesImgBase: trimSlash(args.pagesImgBase || cfg.pagesImgBase || '') || undefined,
     prefix: args.prefix ?? cfg.prefix ?? '',
     max: Number(args.max || cfg.max || 800),
     style: args.style || cfg.style || 'card',
@@ -228,6 +231,9 @@ function buildOptions(args) {
     markStart: cfg.markerStart || MARK_START,
     markEnd: cfg.markerEnd || MARK_END,
   };
+  // pagesImgBase 缺省：imgBase 是点目录（如 .github/sponsor）时镜像到 sponsor/，否则同 imgBase（不镜像）
+  if (!opt.pagesImgBase) opt.pagesImgBase = opt.imgBase.startsWith('.') ? 'sponsor' : opt.imgBase;
+  return opt;
 }
 
 const trimSlash = s => String(s).replace(/^\.?\/+/, '').replace(/\/+$/, '');
@@ -1055,21 +1061,35 @@ function main() {
 
   // 处理图片
   const destDir = path.join(opt.out, opt.imgBase);
+  const pagesDir = path.join(opt.out, opt.pagesImgBase);
+  const mirror = path.relative(destDir, pagesDir) !== '';          // imgBase 本身非点目录时无需镜像
   for (const q of qrList) {
-    if (q.reuse) continue;                       // 源图不在，沿用已有产物
+    if (q.reuse) {
+      // 沿用已有产物：镜像缺了也要补（Pages 依赖非点目录那份）
+      if (mirror && !opt.dryRun) {
+        const srcFile = ['.jpg', '.png', '.webp'].map(e => path.join(destDir, q.baseName + e)).find(fs.existsSync);
+        if (srcFile) { fs.mkdirSync(pagesDir, { recursive: true }); fs.copyFileSync(srcFile, path.join(pagesDir, path.basename(srcFile))); }
+      }
+      continue;
+    }
     const r = optimizeImage(q.abs, destDir, q.baseName, opt.max, opt.noOptimize, opt.dryRun);
     q.destName = path.basename(r.dest);
     q.before = r.before; q.after = r.after; q.inPlace = r.inPlace;
+    if (mirror && !opt.dryRun) {                 // GitHub Pages 不服务 .github/* → 镜像一份给 html 用
+      fs.mkdirSync(pagesDir, { recursive: true });
+      fs.copyFileSync(r.dest, path.join(pagesDir, q.destName));
+    }
   }
   // md 里的展示宽度：图多了收窄，避免一行换行难看
   const width = qrList.length > 2 ? 180 : 220;
   for (const q of qrList) q.mdWidth = width;
 
   // 三种产物共用同一份 src：--standalone 时是 base64，否则是相对路径
+  // html 链路（含被 index.html iframe 的场景）走 pagesImgBase —— Pages 上 .github/ 不可达
   for (const q of qrList) {
     q.cSrc = opt.standalone
       ? dataUri(path.join(destDir, q.destName), q.destName.endsWith('.png') ? 'image/png' : 'image/jpeg')
-      : `${opt.imgBase}/${q.destName}`;
+      : `${opt.pagesImgBase}/${q.destName}`;
   }
 
   // 一份数据喂三种产物 —— HTML / React / Vue 必须严格同源，否则样本会对不上

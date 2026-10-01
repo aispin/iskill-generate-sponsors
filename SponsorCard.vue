@@ -171,7 +171,7 @@ const SPONSOR_DATA = {
   "qr": [
     {
       "key": "alipay",
-      "src": ".github/sponsor/alipay.jpg",
+      "src": "sponsor/alipay.jpg",
       "accent": "#1677FF",
       "label": {
         "zh": "支付宝",
@@ -184,7 +184,7 @@ const SPONSOR_DATA = {
     },
     {
       "key": "wechat",
-      "src": ".github/sponsor/wechat.jpg",
+      "src": "sponsor/wechat.jpg",
       "accent": "#07C160",
       "label": {
         "zh": "微信",
