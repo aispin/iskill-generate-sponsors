@@ -1,0 +1,48 @@
+# GitHub Pages：把 index.html / sponsors.html / 收款码发布为在线预览
+# URL: https://aispin.github.io/iskill-generate-sponsors/
+# 首次启用：Settings → Pages → Build and deployment → Source 选 "GitHub Actions"，
+# 或 gh api -X POST repos/aispin/iskill-generate-sponsors/pages -f build_type=workflow
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sponsors.html'
+      - '.github/sponsor/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 只发布预览所需文件；保留 .github/sponsor/ 目录结构以维持页面里的相对路径
+      - name: Stage site
+        run: |
+          mkdir -p _site/.github/sponsor
+          cp index.html sponsors.html _site/
+          cp .github/sponsor/*.jpg _site/.github/sponsor/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

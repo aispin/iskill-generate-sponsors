@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { GEN_URL } from './lib/model.mjs';
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -92,6 +93,7 @@ export function renderSourceHtml(opt, artifacts) {
       <span data-zh="更新于" data-en="Generated">更新于</span> ${formatTs()}
       · <span data-zh="图片在" data-en="Images in">图片在</span> <code>${esc(opt.imgBase)}/</code>
       · <span data-zh="公开预览页" data-en="Public page">公开预览页</span> <a href="sponsors.html">sponsors.html</a>
+      · <a href="${GEN_URL}" target="_blank" rel="noopener noreferrer"><span data-zh="GitHub 仓库" data-en="GitHub repo">GitHub 仓库</span> ↗</a>
     </p>`;
 
   return `<!DOCTYPE html>
