@@ -655,7 +655,11 @@ var SPONSOR = ${embedJson(model)};
     var b = e.target.closest ? e.target.closest('.qr') : null;
     if (b) { var im = b.querySelector('img'); open(im.currentSrc || im.src, b.dataset.label, im.alt); }
   });
-  lb.addEventListener('click', function (e) { if (e.target === lb || e.target === img) close(); });
+  lb.addEventListener('click', function (e) {
+    if (e.target === lb || e.target === img) { close(); return; }
+    var c = e.target.closest ? e.target.closest('.lb-close') : null;
+    if (c) close();
+  });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) close(); });
 
   /* ── 主题切换 ── */
