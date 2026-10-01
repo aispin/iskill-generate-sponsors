@@ -52,7 +52,7 @@ export function renderSourceHtml(opt, artifacts) {
     <header class="hero">
       ${icon ? `<span class="hero-icon">${icon}</span>` : ''}
       <div class="hero-text">
-        <h1>${esc(opt.project.toUpperCase())} <span class="hero-sub">源码复制</span></h1>
+        <h1>${esc(opt.project)}</h1>
         <p class="lede">${esc(opt.tagline)} 点「复制」拿到产物源码，直接粘进你的项目。</p>
       </div>
     </header>
@@ -108,7 +108,6 @@ h1{
   font-size:19px;font-weight:800;letter-spacing:.02em;margin:0;line-height:1.35;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.hero-sub{color:var(--accent)}
 .lede{color:var(--ink2);margin:3px 0 0;font-size:13px;line-height:1.6;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta{color:var(--ink2);font-size:12px;margin:9px 0 24px}
