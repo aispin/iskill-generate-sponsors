@@ -1,0 +1,13 @@
+# 由 iskill-generate-sponsors 生成 · https://github.com/aispin/iskill-generate-sponsors
+# 规范：https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+#
+# 每个平台填「用户名」（或 平台名/包名），custom 最多 4 个完整 URL。
+# 提交后仓库页右上会出现 Sponsor 按钮。
+
+custom:
+  - "https://paypal.me/zeovi"
+
+# 微信 / 支付宝等扫码收款码不是 GitHub 支持的平台，无法直接配置。
+# 它们已内联展示在 README 的赞助区块，图片在 .github/sponsor/
+#   - 支付宝 → .github/sponsor/alipay.jpg
+#   - 微信 → .github/sponsor/wechat.jpg

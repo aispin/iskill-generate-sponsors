@@ -1,0 +1,22 @@
+{
+  "name": "ZEO",
+  "project": "iskill-generate-sponsors",
+  "title": "赞助支持 · iskill-generate-sponsors",
+  "tagline": "如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕",
+  "accent": "#10C8A1",
+  "imgBase": ".github/sponsor",
+  "max": 800,
+  "style": "card",
+  "note": "中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。",
+  "links": {
+    "paypal": "https://paypal.me/zeovi",
+    "kofi": "",
+    "liberapay": "",
+    "github": ""
+  },
+  "qrDir": ".github/sponsor",
+  "qr": [
+    { "key": "alipay", "label": "支付宝", "src": "alipay.jpg" },
+    { "key": "wechat", "label": "微信", "src": "wechat.jpg" }
+  ]
+}

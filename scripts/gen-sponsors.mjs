@@ -1,0 +1,941 @@
+#!/usr/bin/env node
+/**
+ * iskill-generate-sponsors · 主生成器
+ * ---------------------------------------------------------------------------
+ * 输入：收款码图片（微信/支付宝/PayPal/任意）
+ * 输出：.github/sponsor/*.jpg + .github/FUNDING.yml + SPONSORS.md
+ *       + sponsors.html + README 内联区块（marker 包裹，可重复运行覆盖）
+ *
+ * 零三方依赖（Node 18+ 标准库）。图片压缩优先用 macOS 自带 sips，
+ * 没有 sips（Linux/Windows）时原样拷贝，不影响其余产物。
+ *
+ * 用法：
+ *   node gen-sponsors.mjs --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi
+ *   node gen-sponsors.mjs --config sponsors.config.json --out .
+ *   node gen-sponsors.mjs --help
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+
+// ─────────────────────────────────────────────────────────────── 常量
+
+const MARK_START = '<!-- sponsors:start -->';
+const MARK_END = '<!-- sponsors:end -->';
+const GEN_URL = 'https://github.com/aispin/iskill-generate-sponsors';
+
+/** 已知渠道：文件名/标签命中 keyword 时套用 label / accent / tip */
+const CHANNELS = [
+  { key: 'alipay',   label: '支付宝', accent: '#1677FF', kw: /(alipay|zhifubao|支付宝)/i, tip: '打开支付宝「扫一扫」' },
+  { key: 'wechat',   label: '微信',   accent: '#07C160', kw: /(wechat|weixin|微信)/i,    tip: '打开微信「扫一扫」' },
+  { key: 'qq',       label: 'QQ',     accent: '#12B7F5', kw: /(qq钱包|qqpay|\bqq\b)/i,    tip: '打开 QQ「扫一扫」' },
+  { key: 'unionpay', label: '云闪付', accent: '#E60012', kw: /(unionpay|yunshanfu|云闪付)/i, tip: '打开云闪付「扫一扫」' },
+  { key: 'paypal',   label: 'PayPal', accent: '#0070BA', kw: /(paypal|paypalme)/i,       tip: '打开 PayPal App 扫码' },
+];
+
+/** FUNDING.yml 支持的平台键 → 展示信息（值都是「用户名」） */
+const FUNDING_PLATFORMS = {
+  github:        { label: 'GitHub Sponsors', accent: '#EA4AAA', url: u => `https://github.com/sponsors/${u}` },
+  ko_fi:         { label: 'Ko-fi',           accent: '#FF5E5B', url: u => `https://ko-fi.com/${u}` },
+  liberapay:     { label: 'Liberapay',       accent: '#F6C915', url: u => `https://liberapay.com/${u}` },
+  patreon:       { label: 'Patreon',         accent: '#FF424D', url: u => `https://patreon.com/${u}` },
+  open_collective:{ label: 'Open Collective', accent: '#7FADF2', url: u => `https://opencollective.com/${u}` },
+  buy_me_a_coffee:{ label: 'Buy Me a Coffee', accent: '#FFDD00', url: u => `https://buymeacoffee.com/${u}` },
+  polar:         { label: 'Polar',           accent: '#0062FF', url: u => `https://polar.sh/${u}` },
+  issuehunt:     { label: 'IssueHunt',       accent: '#EB5757', url: u => `https://issuehunt.io/r/${u}` },
+  thanks_dev:    { label: 'thanks.dev',      accent: '#0F172A', url: u => `https://thanks.dev/${u}` },
+};
+
+const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
+
+// ───────────────────────────────────────────────────────── 参数解析
+
+function parseArgs(argv) {
+  const out = { qr: [], links: [] };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a.startsWith('--')) continue;
+    const key = a.slice(2);
+    if (key === 'help') { out.help = true; continue; }
+    if (key === 'standalone' || key === 'dry-run' || key === 'no-readme' || key === 'no-optimize' || key === 'force') {
+      out[camel(key)] = true; continue;
+    }
+    // --qr 可重复
+    if (key === 'qr' || key === 'link') {
+      out[key === 'qr' ? 'qr' : 'links'].push(argv[++i] ?? '');
+      continue;
+    }
+    const val = argv[++i];
+    if (val === undefined) throw new Error(`参数 --${key} 缺少值`);
+    out[camel(key)] = val;
+  }
+  return out;
+}
+const camel = s => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+
+function usage() {
+  console.log(`
+iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
+
+  node gen-sponsors.mjs [选项]
+
+输入
+  --from <目录>            扫描目录里的图片，按文件名关键词自动识别渠道
+  --qr "<标签>=<图片路径>"  显式指定一张收款码（可重复）
+  --config <文件>          读取 JSON 配置（默认自动找 ./sponsors.config.json）
+
+身份与文案
+  --name <文本>            你的名字 / 昵称（默认 "Sponsor"）
+  --project <文本>         项目名（默认取当前目录名）
+  --tagline <文本>         一句感谢语
+  --title <文本>           赞助页主标题（默认「赞助支持 · <project>」）
+
+赞助链接（值是用户名，PayPal 例外传完整 URL）
+  --paypal <url>           例：https://paypal.me/zeovi
+  --kofi <用户名>            --liberapay <用户名>     --github <用户名>
+  --patreon <用户名>         --bmc <用户名>           --link <完整URL>
+
+输出
+  --out <目录>             产物根目录（默认 .）
+  --img-base <路径>        md/html 里引用图片的相对路径前缀（默认 .github/sponsor）
+  --prefix <前缀>          输出图片文件名前缀（默认空）
+  --max <像素>             图片长边上限（默认 800）
+  --style card|minimal     html 风格（默认 card）
+  --standalone             html 内嵌 base64 图片，单文件可直接发人
+  --no-readme              不写入 README
+  --no-optimize            不压缩图片，原样拷贝
+  --dry-run                只打印将要做什么，不落盘
+  --force                  覆盖已存在的图片（默认也会覆盖，此开关仅语义明确）
+
+示例
+  node gen-sponsors.mjs --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi \\
+                        --kofi zeo --project my-project --out .
+`);
+}
+
+// ───────────────────────────────────────────────────────────── 配置
+
+function loadConfig(file) {
+  if (!file || !fs.existsSync(file)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    throw new Error(`配置文件解析失败：${file} — ${e.message}`);
+  }
+}
+
+const DEFAULT_TAGLINE = '如果这个项目帮到了你，可以请我喝杯咖啡 ☕';
+
+function buildOptions(args) {
+  const cfgPath = args.config || 'sponsors.config.json';
+  const cfgFound = fs.existsSync(cfgPath);
+  const cfg = loadConfig(cfgFound ? cfgPath : args.config);
+  const cfgDir = cfgFound ? path.dirname(path.resolve(cfgPath)) : process.cwd();
+  const links = { ...(cfg.links || {}) };
+
+  // 额外的 --link "label=url" 收集
+  const extraLinks = [];
+  for (const raw of args.links || []) {
+    const i = raw.indexOf('=');
+    if (i < 0) throw new Error(`--link 需要 "标签=URL" 格式，收到：${raw}`);
+    extraLinks.push({ label: raw.slice(0, i).trim(), url: raw.slice(i + 1).trim() });
+  }
+
+  // 扁平 CLI → 结构
+  const cliLinks = {
+    ko_fi: args.kofi, liberapay: args.liberapay, github: args.github,
+    patreon: args.patreon, buy_me_a_coffee: args.bmc || args.buyMeACoffee,
+    open_collective: args.openCollective, polar: args.polar,
+  };
+  for (const [k, v] of Object.entries(cliLinks)) if (v) links[k] = v;
+  if (args.paypal) links.paypal = args.paypal;
+
+  // PayPal 常见笔误纠正
+  if (links.paypal) links.paypal = links.paypal.replace(/paypay\.me/gi, 'paypal.me');
+
+  const name = args.name || cfg.name || 'Sponsor';
+  const project = args.project || cfg.project || path.basename(process.cwd());
+  const tagline = args.tagline || cfg.tagline || DEFAULT_TAGLINE;
+  const title = args.title || cfg.title || `赞助支持 · ${project}`;
+
+  const qrSpecs = [];
+  for (const raw of args.qr || []) {
+    const i = raw.indexOf('=');
+    if (i < 0) throw new Error(`--qr 需要 "标签=图片路径" 格式，收到：${raw}`);
+    qrSpecs.push({ label: raw.slice(0, i).trim(), src: raw.slice(i + 1).trim() });
+  }
+  if (!qrSpecs.length && Array.isArray(cfg.qr)) {
+    const base = cfg.qrDir ? path.resolve(cfgDir, cfg.qrDir) : cfgDir;
+    for (const q of cfg.qr) {
+      const rel = q.src || q.file;
+      qrSpecs.push({
+        label: q.label, key: q.key, accent: q.accent, tip: q.tip,
+        src: path.isAbsolute(rel) ? rel : path.resolve(base, rel),
+      });
+    }
+  }
+
+  return {
+    name, project, tagline, title,
+    accent: args.accent || cfg.accent || '#10C8A1',
+    footerNote: args.note || cfg.note || '',
+    links, extraLinks, qrSpecs,
+    from: args.from || cfg.from || '',
+    out: path.resolve(args.out || cfg.out || '.'),
+    imgBase: trimSlash(args.imgBase || cfg.imgBase || '.github/sponsor'),
+    prefix: args.prefix ?? cfg.prefix ?? '',
+    max: Number(args.max || cfg.max || 800),
+    style: args.style || cfg.style || 'card',
+    standalone: !!args.standalone || !!cfg.standalone,
+    noReadme: !!args.noReadme,
+    noOptimize: !!args.noOptimize,
+    dryRun: !!args.dryRun,
+    readme: args.readme || cfg.readme || 'README.md',
+    markStart: cfg.markerStart || MARK_START,
+    markEnd: cfg.markerEnd || MARK_END,
+  };
+}
+
+const trimSlash = s => String(s).replace(/^\.?\/+/, '').replace(/\/+$/, '');
+
+// ─────────────────────────────────────────────────── 收款码发现与处理
+
+function matchChannel(hay) {
+  for (const c of CHANNELS) if (c.kw.test(hay)) return c;
+  return null;
+}
+
+function discoverFromDir(dir) {
+  if (!fs.existsSync(dir)) throw new Error(`--from 目录不存在：${dir}`);
+  const files = fs.readdirSync(dir).filter(f => IMG_EXT.test(f) && !f.startsWith('.')).sort();
+  return files.map(f => {
+    const ch = matchChannel(f);
+    return { label: ch ? ch.label : path.parse(f).name, src: path.join(dir, f), key: ch?.key, accent: ch?.accent };
+  });
+}
+
+function slug(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'qr';
+}
+
+function hasSips() {
+  try { execFileSync('sips', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; }
+}
+
+function optimizeImage(src, destDir, baseName, max, noOptimize, dryRun) {
+  const ext = path.extname(src).toLowerCase();
+  const keepExt = ext === '.png' || ext === '.webp' ? ext : '.jpg';
+  const dest = path.join(destDir, baseName + keepExt);
+  const before = fs.statSync(src).size;
+
+  // 源就是产物（配置里 src 直接指向 .github/sponsor/）→ 不动，保证幂等
+  if (path.resolve(src) === path.resolve(dest)) {
+    return { dest, before, after: before, sampled: false, inPlace: true };
+  }
+  if (dryRun) return { dest, before, after: 0, sampled: false };
+
+  fs.mkdirSync(destDir, { recursive: true });
+  let sampled = false;
+  if (!noOptimize && hasSips()) {
+    try {
+      // 注意：-Z 的值必须紧跟其后，formatOptions 只能插在 -Z 组之后
+      const args = ['-Z', String(max)];
+      if (keepExt === '.jpg') args.push('-s', 'formatOptions', '82');
+      args.push(src, '--out', dest);
+      execFileSync('sips', args, { stdio: 'ignore' });
+      sampled = true;
+    } catch { sampled = false; }
+  }
+  if (!sampled) fs.copyFileSync(src, dest);
+  return { dest, before, after: fs.statSync(dest).size, sampled };
+}
+
+function resolveQrList(opt) {
+  let specs = opt.qrSpecs.slice();
+  if (!specs.length && opt.from) specs = discoverFromDir(opt.from);
+  if (!specs.length) throw new Error('没有收款码图片。请用 --from <目录> 或 --qr "标签=路径"。');
+  const destDir = path.join(opt.out, opt.imgBase);
+
+  return specs.map((s, idx) => {
+    const abs = path.resolve(String(s.src).replace(/^~/, process.env.HOME || '~'));
+    const ch = s.key ? CHANNELS.find(c => c.key === s.key) : matchChannel(s.label + ' ' + path.basename(abs));
+    const label = s.label || ch?.label || `收款码 ${idx + 1}`;
+    const tip = s.tip || ch?.tip || '扫码支持我';
+    const accent = s.accent || ch?.accent || opt.accent;
+    const baseName = (opt.prefix || '') + slug(ch?.key || s.key || label);
+
+    // 源图缺失但产物已存在 → 直接复用（让配置在换机器后仍可重跑）
+    if (!fs.existsSync(abs)) {
+      const found = ['.jpg', '.png', '.webp'].map(e => path.join(destDir, baseName + e)).find(fs.existsSync);
+      if (found) {
+        return { label, tip, accent, key: ch?.key || slug(label), baseName, abs: null, destName: path.basename(found), reuse: true };
+      }
+      throw new Error(`图片不存在：${s.src}`);
+    }
+    return { label, tip, accent, key: ch?.key || slug(label), baseName, abs, reuse: false };
+  });
+}
+
+// ───────────────────────────────────────────────────────────── 渲染
+
+function yamlQuote(v) {
+  return /[:#{}[\],&*?|<>=!%@`"']/.test(v) || v !== v.trim() ? JSON.stringify(v) : v;
+}
+
+function renderFundingYml(opt, qrList) {
+  const L = [];
+  L.push('# 由 iskill-generate-sponsors 生成 · ' + GEN_URL);
+  L.push('# 规范：https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository');
+  L.push('#');
+  L.push('# 每个平台填「用户名」（或 平台名/包名），custom 最多 4 个完整 URL。');
+  L.push('# 提交后仓库页右上会出现 Sponsor 按钮。');
+  L.push('');
+
+  let any = false;
+  for (const [key, info] of Object.entries(FUNDING_PLATFORMS)) {
+    const val = opt.links[key];
+    if (!val) continue;
+    any = true;
+    L.push(`${key}: ${yamlQuote(val)}`.padEnd(26) + `# ${info.label}`);
+  }
+
+  const custom = [];
+  if (opt.links.paypal) custom.push(opt.links.paypal);
+  for (const l of opt.extraLinks) custom.push(l.url);
+  if (custom.length) {
+    if (custom.length > 4) L.push('# ⚠️ custom 超过 4 条，GitHub 只认前 4 条');
+    any = true;
+    L.push('custom:');
+    for (const url of custom.slice(0, 4)) L.push('  - ' + JSON.stringify(url));
+  }
+
+  // 中国内地收款码无法写进 FUNDING.yml，用注释留痕，指引到 README
+  if (qrList.length) {
+    L.push('');
+    L.push('# 微信 / 支付宝等扫码收款码不是 GitHub 支持的平台，无法直接配置。');
+    L.push('# 它们已内联展示在 README 的赞助区块，图片在 ' + opt.imgBase + '/');
+    for (const q of qrList) L.push('#   - ' + q.label + ' → ' + opt.imgBase + '/' + q.destName);
+  }
+
+  if (!any) {
+    L.push('# 未提供任何外部赞助链接。至少加一个，例如：');
+    L.push('# custom:');
+    L.push('#   - "https://paypal.me/yourname"');
+  }
+  return L.join('\n') + '\n';
+}
+
+function mdImageRow(qrList, opt, indent = '') {
+  const cells = qrList.map(q => {
+    const src = `${opt.imgBase}/${q.destName}`;
+    return `<img src="${src}" width="${q.mdWidth}" alt="${esc(q.label)}收款码">`;
+  });
+  // 间距用 &nbsp; 且**不单独占一行** —— 独占一行的裸实体在部分 Markdown 渲染器里
+  // 会被包成 <p>，从而提前闭合外层 <p align="center">，两张码就变成上下堆叠。
+  return `${indent}<p align="center">\n${indent}  ${cells.join('&nbsp;&nbsp;&nbsp;')}\n${indent}</p>`;
+}
+
+function linkTable(opt, qrList) {
+  const rows = [];
+  for (const q of qrList) rows.push(`| **${esc(q.label)}** | 扫码（见上方二维码） |`);
+  for (const [key, info] of Object.entries(FUNDING_PLATFORMS)) {
+    const val = opt.links[key];
+    if (val) rows.push(`| ${info.label} | [${val}](${info.url(val)}) |`);
+  }
+  if (opt.links.paypal) rows.push(`| PayPal | [${opt.links.paypal}](${opt.links.paypal}) |`);
+  for (const l of opt.extraLinks) rows.push(`| ${esc(l.label)} | [${l.url}](${l.url}) |`);
+  return ['| 渠道 | 地址 |', '| --- | --- |', ...rows].join('\n');
+}
+
+function renderMarkdown(opt, qrList, { heading = true } = {}) {
+  const L = [];
+  L.push(opt.markStart);
+  if (heading) {
+    L.push(`## ${opt.title}`);
+    L.push('');
+    L.push(opt.tagline);
+    L.push('');
+  }
+  if (qrList.length) {
+    L.push(mdImageRow(qrList, opt));
+    L.push('');
+    L.push('<p align="center"><sub>' + qrList.map(q => esc(q.tip)).join(' · ') + '</sub></p>');
+    L.push('');
+  }
+  L.push(linkTable(opt, qrList));
+  L.push('');
+  if (opt.footerNote) { L.push(opt.footerNote); L.push(''); }
+  L.push(`<p align="center"><sub>感谢每一份支持 · <a href="${GEN_URL}">iskill-generate-sponsors</a></sub></p>`);
+  L.push(opt.markEnd);
+  return L.join('\n');
+}
+
+function fundingBody(opt, qrList) {
+  return renderFundingYml(opt, qrList)
+    .split('\n')
+    .filter(l => !/^#\s*(由 iskill|规范：)/.test(l) && l.trim() !== '#')
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function renderStandaloneMd(opt, qrList) {
+  const L = [];
+  L.push(`# ${opt.title}`);
+  L.push('');
+  L.push(`> ${opt.tagline}`);
+  L.push('');
+  L.push(`下面 \`${opt.markStart}\` 与 \`${opt.markEnd}\` 之间的内容，可以整段复制进你的 README 或任意 Markdown 文档。`);
+  L.push('');
+  L.push(renderMarkdown(opt, qrList, { heading: false }));
+  L.push('');
+  L.push('---');
+  L.push('');
+  L.push('## 嵌入到你的项目');
+  L.push('');
+  L.push('1. 把 `.github/sponsor/` 里的二维码图片拷进你的仓库同一位置；');
+  L.push('2. 把上面区块整段粘到你的 README（或任意 md 文档）；');
+  L.push('3. 把 `.github/FUNDING.yml` 拷进你的仓库，填上自己的链接。');
+  L.push('');
+  L.push('图片路径是**相对仓库根目录**的。文档若在子目录（如 `docs/README.md`），');
+  L.push('用 `--img-base ../.github/sponsor` 重新生成一次即可。');
+  L.push('');
+  L.push('## GitHub Sponsor 按钮 · `.github/FUNDING.yml`');
+  L.push('');
+  L.push('```yaml');
+  L.push(fundingBody(opt, qrList));
+  L.push('```');
+  L.push('');
+  L.push(`<sub>本文件由 <a href="${GEN_URL}">iskill-generate-sponsors</a> 生成，重跑整块覆盖。</sub>`);
+  return L.join('\n') + '\n';
+}
+
+// ── 内联 SVG 图标（几何线条，不用 emoji） ──
+const ICON = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 4.2-5.4 8-8.8 10.4C8.6 16.6 3.2 12.8 3.2 8.6A4.6 4.6 0 0 1 12 6.4a4.6 4.6 0 0 1 8.8 2.2Z"/></svg>',
+  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/></svg>',
+  qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg>',
+  expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7Z"/></svg>',
+};
+
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function renderLinks(opt) {
+  const items = [];
+  for (const [key, info] of Object.entries(FUNDING_PLATFORMS)) {
+    const val = opt.links[key];
+    if (val) items.push({ label: info.label, sub: val, url: info.url(val), accent: info.accent });
+  }
+  if (opt.links.paypal) {
+    items.push({ label: 'PayPal', sub: opt.links.paypal.replace(/^https?:\/\//, ''), url: opt.links.paypal, accent: '#0070BA' });
+  }
+  for (const l of opt.extraLinks) items.push({ label: l.label, sub: l.url.replace(/^https?:\/\//, ''), url: l.url, accent: opt.accent });
+  return items;
+}
+
+function dataUri(file, mime) {
+  return `data:${mime};base64,` + fs.readFileSync(file).toString('base64');
+}
+
+function renderHtml(opt, qrList) {
+  const minimal = opt.style === 'minimal';
+  const links = renderLinks(opt);
+  const date = new Date().toISOString().slice(0, 10);
+
+  const cards = qrList.map(q => {
+    const src = opt.standalone
+      ? dataUri(path.join(opt.out, opt.imgBase, q.destName), q.destName.endsWith('.png') ? 'image/png' : 'image/jpeg')
+      : `${opt.imgBase}/${q.destName}`;
+    return `
+      <figure class="card" style="--accent:${q.accent}">
+        <div class="card-head">
+          <span class="chip">${ICON.qr}${esc(q.label)}</span>
+          <span class="hint">点击放大</span>
+        </div>
+        <button class="qr" type="button" data-label="${esc(q.label)}" aria-label="放大${esc(q.label)}收款码">
+          <img src="${src}" alt="${esc(q.label)}收款码" loading="lazy" decoding="async">
+          <span class="zoom">${ICON.expand}</span>
+        </button>
+        <figcaption>
+          <strong>${esc(q.label)}</strong>
+          <span>${esc(q.tip)}</span>
+        </figcaption>
+      </figure>`;
+  }).join('\n');
+
+  const buttons = links.length
+    ? links.map(l => `
+        <a class="link" style="--accent:${l.accent}" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">
+          <span class="link-label">${esc(l.label)}</span>
+          <span class="link-sub">${esc(l.sub)}</span>
+          <span class="link-icon">${ICON.link}</span>
+        </a>`).join('\n')
+    : '<p class="empty">还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字</code> 再来一次。</p>';
+
+  const css = minimal ? cssMinimal() : cssCard();
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(opt.title)}</title>
+<meta name="description" content="${esc(opt.tagline)}">
+<meta name="color-scheme" content="light dark">
+<script>
+/* 主题：URL 加 #theme=light / #theme=dark 可强制某一套配色（分享/截图用），
+   否则读 localStorage，再否则跟随系统。放在 <style> 之前跑，避免首帧闪白。 */
+try{
+  var m=(location.hash||'').match(/theme=(light|dark)/);
+  var t=m?m[1]:localStorage.getItem('sponsor-theme');
+  if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
+}catch(e){}
+</script>
+<style>
+${css}
+</style>
+</head>
+<body>
+<button class="theme-toggle" type="button" aria-label="切换深色 / 浅色" title="切换深色 / 浅色">
+  <span class="ic-sun">${ICON.sun}</span><span class="ic-moon">${ICON.moon}</span>
+</button>
+<main class="wrap">
+  <header class="hero">
+    <span class="badge">${ICON.heart} SPONSOR</span>
+    <h1>${esc(opt.title)}</h1>
+    <p class="lede">${esc(opt.tagline)}</p>
+  </header>
+
+  <section class="qrs${qrList.length > 1 ? ' multi' : ''}">
+${cards}
+  </section>
+
+  <section class="links-wrap">
+    <h2>其他支持方式</h2>
+    <div class="links">
+${buttons}
+    </div>
+  </section>
+
+  ${opt.footerNote ? `<p class="note">${esc(opt.footerNote)}</p>` : ''}
+
+  <footer class="foot">
+    由 <a href="${GEN_URL}" target="_blank" rel="noopener noreferrer">iskill-generate-sponsors</a> 生成 · ${date}
+  </footer>
+</main>
+
+<div class="lightbox" hidden>
+  <button class="lb-close" type="button" aria-label="关闭">×</button>
+  <img alt="">
+  <p class="lb-cap"></p>
+</div>
+
+<script>
+(function () {
+  var lb = document.querySelector('.lightbox');
+  var img = lb.querySelector('img');
+  var cap = lb.querySelector('.lb-cap');
+  function open(src, label, alt) {
+    img.src = src; img.alt = alt; cap.textContent = label;
+    lb.hidden = false; document.body.style.overflow = 'hidden';
+  }
+  function close() { lb.hidden = true; img.src = ''; document.body.style.overflow = ''; }
+  document.querySelectorAll('.qr').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var im = b.querySelector('img');
+      open(im.currentSrc || im.src, b.dataset.label, im.alt);
+    });
+  });
+  lb.addEventListener('click', function (e) { if (e.target === lb || e.target === img) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) close(); });
+
+  var btn = document.querySelector('.theme-toggle');
+  if (btn) btn.addEventListener('click', function () {
+    var root = document.documentElement;
+    var now = root.getAttribute('data-theme');
+    if (!now) now = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var next = now === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('sponsor-theme', next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
+`;
+}
+
+function cssCard() {
+  return `:root{
+  color-scheme:light;
+  --ink:#0f1b2d; --ink2:#55637a; --ink3:#93a1b4;
+  --line:#e3e9f2; --card:#ffffff; --card-soft:#fafcff;
+  --bg:radial-gradient(900px 480px at 12% -8%,#e8f1ff 0,transparent 62%),
+       radial-gradient(760px 420px at 92% 4%,#e6fbf2 0,transparent 58%),
+       linear-gradient(180deg,#f5f8fc,#eef3f9);
+  --badge-fg:#0b7f68; --badge-bg:#e2f7f1; --badge-line:#bde9dd;
+  --qr-bg:#ffffff; --qr-line:#e3e9f2;
+  --shadow:0 1px 2px rgba(16,32,56,.04), 0 12px 32px -12px rgba(16,32,56,.18);
+  --shadow-hi:0 1px 2px rgba(16,32,56,.05), 0 22px 46px -16px rgba(16,32,56,.26);
+  --code-bg:#eef2f8;
+  --ui-bg:rgba(255,255,255,.82); --ui-line:#e3e9f2;
+  --chip-bg:color-mix(in srgb,var(--accent) 12%,var(--card));
+  --chip-fg:color-mix(in srgb,var(--accent) 62%,var(--ink));
+  --chip-line:color-mix(in srgb,var(--accent) 26%,var(--card));
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#eaf0f8; --ink2:#9fadc0; --ink3:#7b8a9d;
+  --line:#22303f; --card:#141d29; --card-soft:#192433;
+  --bg:radial-gradient(900px 480px at 12% -8%,#152337 0,transparent 62%),
+       radial-gradient(760px 420px at 92% 4%,#122a26 0,transparent 58%),
+       linear-gradient(180deg,#0d131d,#111a26);
+  --badge-fg:#8ff0d4; --badge-bg:#122a26; --badge-line:#1e4a41;
+  --qr-bg:#ffffff; --qr-line:#2b3a4b;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -12px rgba(0,0,0,.65);
+  --shadow-hi:0 1px 2px rgba(0,0,0,.4), 0 22px 46px -16px rgba(0,0,0,.75);
+  --code-bg:#1b2635;
+  --ui-bg:rgba(20,29,41,.86); --ui-line:#26364a;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ink:#eaf0f8; --ink2:#9fadc0; --ink3:#7b8a9d;
+    --line:#22303f; --card:#141d29; --card-soft:#192433;
+    --bg:radial-gradient(900px 480px at 12% -8%,#152337 0,transparent 62%),
+         radial-gradient(760px 420px at 92% 4%,#122a26 0,transparent 58%),
+         linear-gradient(180deg,#0d131d,#111a26);
+    --badge-fg:#8ff0d4; --badge-bg:#122a26; --badge-line:#1e4a41;
+    --qr-bg:#ffffff; --qr-line:#2b3a4b;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -12px rgba(0,0,0,.65);
+    --shadow-hi:0 1px 2px rgba(0,0,0,.4), 0 22px 46px -16px rgba(0,0,0,.75);
+    --code-bg:#1b2635;
+    --ui-bg:rgba(20,29,41,.86); --ui-line:#26364a;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; padding:56px 20px 72px; color:var(--ink);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); background-attachment:fixed;
+  min-height:100vh; transition:color .2s;
+}
+.wrap{max-width:860px;margin:0 auto}
+
+.hero{text-align:center;margin-bottom:38px}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11.5px;font-weight:700;letter-spacing:.16em;
+  color:var(--badge-fg);background:var(--badge-bg);border:1px solid var(--badge-line);
+  padding:6px 14px;border-radius:999px;
+}
+.badge svg{width:14px;height:14px}
+.hero h1{font-size:clamp(26px,4.2vw,36px);line-height:1.25;margin:18px 0 10px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--ink2);font-size:16.5px}
+
+.qrs{display:grid;gap:22px;grid-template-columns:1fr;justify-items:center}
+@media(min-width:640px){.qrs.multi{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));justify-items:stretch}}
+
+.card{
+  --accent:#10C8A1;
+  position:relative;margin:0;width:100%;max-width:340px;
+  background:var(--card);border:1px solid var(--line);border-radius:22px;
+  box-shadow:var(--shadow);padding:20px 20px 18px;
+  display:flex;flex-direction:column;gap:14px;
+  transition:transform .22s cubic-bezier(.2,.7,.3,1),box-shadow .22s;
+  overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;inset:0 0 auto;height:5px;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 45%,var(--card)));
+}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hi)}
+
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:650;
+  color:var(--chip-fg);background:var(--chip-bg);border:1px solid var(--chip-line);
+  padding:5px 11px;border-radius:999px;
+}
+.chip svg{width:15px;height:15px}
+.hint{font-size:12px;color:var(--ink3)}
+
+.qr{
+  position:relative;display:block;width:100%;padding:12px;margin:0;cursor:zoom-in;
+  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:16px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.qr:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--qr-line));box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent)}
+.qr:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.qr img{display:block;width:100%;height:auto;border-radius:8px}
+.zoom{
+  position:absolute;right:20px;bottom:20px;width:30px;height:30px;border-radius:9px;
+  display:grid;place-items:center;color:#fff;background:rgba(15,27,45,.55);
+  backdrop-filter:blur(6px);opacity:0;transition:opacity .2s;
+}
+.zoom svg{width:16px;height:16px}
+.qr:hover .zoom{opacity:1}
+
+.card figcaption{display:flex;flex-direction:column;gap:2px;text-align:center}
+.card figcaption strong{font-size:15px;letter-spacing:.01em}
+.card figcaption span{font-size:13px;color:var(--ink2)}
+
+.links-wrap{margin-top:44px}
+.links-wrap h2{
+  font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink3);margin:0 0 14px;text-align:center;
+}
+.links{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.link{
+  --accent:#10C8A1;
+  position:relative;display:flex;align-items:center;gap:12px;
+  padding:14px 16px;text-decoration:none;color:var(--ink);
+  background:var(--card);border:1px solid var(--line);border-radius:15px;
+  box-shadow:0 1px 2px rgba(16,32,56,.04);
+  transition:transform .18s,border-color .18s,box-shadow .18s,background .18s;
+}
+.link::after{content:"";position:absolute;left:16px;right:16px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent);opacity:0;transition:opacity .18s}
+.link:hover{transform:translateY(-2px);background:var(--card-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));box-shadow:0 10px 24px -14px rgba(16,32,56,.45)}
+.link:hover::after{opacity:1}
+.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.link-label{font-weight:650;font-size:14.5px}
+.link-sub{font-size:12.5px;color:var(--ink2);margin-left:auto;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-icon{width:17px;height:17px;color:var(--accent);flex:none}
+.link-icon svg{width:100%;height:100%}
+.empty{color:var(--ink2);text-align:center}
+.empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-size:13.5px}
+
+.note{margin:28px 0 0;text-align:center;color:var(--ink2);font-size:14px}
+.foot{margin-top:40px;text-align:center;font-size:13px;color:var(--ink3)}
+.foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
+.foot a:hover{color:var(--ink)}
+
+.theme-toggle{
+  position:fixed;top:16px;right:16px;z-index:20;width:38px;height:38px;border-radius:12px;
+  display:grid;place-items:center;cursor:pointer;color:var(--ink2);
+  background:var(--ui-bg);border:1px solid var(--ui-line);
+  backdrop-filter:blur(10px);box-shadow:0 4px 14px -8px rgba(16,32,56,.5);
+}
+.theme-toggle:hover{color:var(--ink)}
+.theme-toggle svg{width:18px;height:18px}
+
+.lightbox{
+  position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+  background:rgba(9,16,28,.78);backdrop-filter:blur(10px);
+  padding:32px;cursor:zoom-out;animation:fade .18s ease;
+}
+.lightbox[hidden]{display:none}
+.lightbox img{
+  max-width:min(440px,86vw);max-height:76vh;width:auto;height:auto;
+  background:#fff;padding:14px;border-radius:20px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.6);
+}
+.lb-cap{color:#e8eef7;font-size:14.5px;margin:0;letter-spacing:.02em}
+.lb-close{
+  position:absolute;top:20px;right:22px;width:40px;height:40px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;
+  font-size:22px;line-height:1;cursor:pointer;
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{
+  body{background:#fff;padding:0}
+  .card,.link{box-shadow:none;break-inside:avoid;background:#fff}
+  .qr{cursor:default}
+  .hint,.zoom,.foot,.theme-toggle{display:none}
+  .lightbox{display:none}
+}
+.theme-toggle .ic-moon{display:none}
+:root[data-theme="dark"] .theme-toggle .ic-sun{display:none}
+:root[data-theme="dark"] .theme-toggle .ic-moon{display:block}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .theme-toggle .ic-sun{display:none}
+  :root:not([data-theme="light"]) .theme-toggle .ic-moon{display:block}
+}`;
+}
+
+function cssMinimal() {
+  return `:root{
+  color-scheme:light;
+  --ink:#111c2c; --ink2:#5a6779; --ink3:#93a0b1;
+  --line:#e4e9f0; --card:#ffffff; --card-soft:#fafcff; --bg:#ffffff;
+  --qr-bg:#ffffff; --qr-line:#e4e9f0; --code-bg:#f1f4f9;
+  --ui-bg:rgba(255,255,255,.85); --ui-line:#e4e9f0;
+  --chip-fg:color-mix(in srgb,var(--accent) 62%,var(--ink));
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#eaf0f8; --ink2:#9fadc0; --ink3:#7b8a9d;
+  --line:#233040; --card:#0d131d; --card-soft:#141d29; --bg:#0d131d;
+  --qr-bg:#ffffff; --qr-line:#2b3a4b; --code-bg:#1b2635;
+  --ui-bg:rgba(13,19,29,.86); --ui-line:#26364a;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ink:#eaf0f8; --ink2:#9fadc0; --ink3:#7b8a9d;
+    --line:#233040; --card:#0d131d; --card-soft:#141d29; --bg:#0d131d;
+    --qr-bg:#ffffff; --qr-line:#2b3a4b; --code-bg:#1b2635;
+    --ui-bg:rgba(13,19,29,.86); --ui-line:#26364a;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0;padding:64px 24px;color:var(--ink);background:var(--bg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+.wrap{max-width:680px;margin:0 auto}
+.hero{text-align:center;margin-bottom:44px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--chip-fg);border-bottom:2px solid currentColor;padding-bottom:4px}
+.badge svg{width:13px;height:13px}
+.hero h1{font-size:28px;margin:20px 0 8px;font-weight:600;letter-spacing:-.01em}
+.lede{margin:0;color:var(--ink2)}
+.qrs{display:flex;flex-wrap:wrap;justify-content:center;gap:40px;margin-bottom:48px}
+.card{--accent:#10C8A1;margin:0;display:flex;flex-direction:column;align-items:center;gap:14px;width:220px}
+.card-head{display:none}
+.qr{padding:0;margin:0;border:1px solid var(--qr-line);border-radius:12px;background:var(--qr-bg);cursor:zoom-in}
+.qr:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.qr img{display:block;width:100%;height:auto;border-radius:11px}
+.zoom{display:none}
+.card figcaption{text-align:center;display:flex;flex-direction:column;gap:2px}
+.card figcaption strong{font-size:14px;font-weight:600;color:var(--chip-fg)}
+.card figcaption span{font-size:12.5px;color:var(--ink2)}
+.links-wrap h2{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);text-align:center;margin:0 0 16px}
+.links{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.link{display:flex;align-items:center;gap:12px;padding:14px 4px;text-decoration:none;color:var(--ink);border-bottom:1px solid var(--line);transition:background .16s}
+.link:hover{background:var(--card-soft)}
+.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.link-label{font-weight:600;font-size:14.5px}
+.link-sub{margin-left:auto;font-size:12.5px;color:var(--ink2)}
+.link-icon{width:16px;height:16px;color:var(--chip-fg)}
+.empty{color:var(--ink2);text-align:center}
+.empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px}
+.note{margin-top:32px;text-align:center;color:var(--ink2);font-size:14px}
+.foot{margin-top:40px;text-align:center;font-size:12.5px;color:var(--ink3)}
+.foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
+.theme-toggle{position:fixed;top:16px;right:16px;z-index:20;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--ink2);background:var(--ui-bg);border:1px solid var(--ui-line);backdrop-filter:blur(10px)}
+.theme-toggle svg{width:18px;height:18px}
+.lightbox{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(9,16,28,.8);padding:32px;cursor:zoom-out}
+.lightbox[hidden]{display:none}
+.lightbox img{max-width:min(420px,86vw);max-height:76vh;background:#fff;padding:12px;border-radius:16px}
+.lb-cap{color:#e8eef7;margin:0;font-size:14px}
+.lb-close{position:absolute;top:20px;right:22px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer}
+@media print{body{padding:0;background:#fff}.foot,.links-wrap,.theme-toggle{display:none}.qr{cursor:default}}
+.theme-toggle .ic-moon{display:none}
+:root[data-theme="dark"] .theme-toggle .ic-sun{display:none}
+:root[data-theme="dark"] .theme-toggle .ic-moon{display:block}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .theme-toggle .ic-sun{display:none}
+  :root:not([data-theme="light"]) .theme-toggle .ic-moon{display:block}
+}`;
+}
+
+// ─────────────────────────────────────────────────────── README 注入
+
+function injectReadme(opt, block) {
+  const file = path.join(opt.out, opt.readme);
+  const raw = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+  const lines = raw === null ? null : raw.split('\n');
+
+  // marker 必须**独占一行**才算真区块 —— 否则正文里提到的 `<!-- sponsors:start -->`
+  // 会被误当锚点（README 表格里写一次就中招）
+  const si = lines ? lines.findIndex(l => l.trim() === opt.markStart) : -1;
+  const ei = lines ? lines.findIndex((l, i) => i > si && l.trim() === opt.markEnd) : -1;
+
+  if (opt.dryRun) {
+    return { file, action: raw === null ? 'create' : (si >= 0 && ei > si ? 'replace' : 'append') };
+  }
+
+  if (raw === null) {
+    fs.writeFileSync(file, [
+      `# ${opt.project}`,
+      '',
+      `本项目的赞助信息见下方区块（由 [iskill-generate-sponsors](${GEN_URL}) 生成）。`,
+      '',
+      block,
+      '',
+    ].join('\n'));
+    return { file, action: 'create' };
+  }
+
+  if (si >= 0 && ei > si) {
+    const out = [...lines.slice(0, si), ...block.split('\n'), ...lines.slice(ei + 1)];
+    fs.writeFileSync(file, out.join('\n'));
+    return { file, action: 'replace' };
+  }
+
+  fs.writeFileSync(file, raw.replace(/\s*$/, '') + '\n\n---\n\n' + block + '\n');
+  return { file, action: 'append' };
+}
+
+// ───────────────────────────────────────────────────────────── main
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) { usage(); return; }
+
+  const opt = buildOptions(args);
+  const qrList = resolveQrList(opt);
+
+  // 处理图片
+  const destDir = path.join(opt.out, opt.imgBase);
+  for (const q of qrList) {
+    if (q.reuse) continue;                       // 源图不在，沿用已有产物
+    const r = optimizeImage(q.abs, destDir, q.baseName, opt.max, opt.noOptimize, opt.dryRun);
+    q.destName = path.basename(r.dest);
+    q.before = r.before; q.after = r.after; q.inPlace = r.inPlace;
+  }
+  // md 里的展示宽度：图多了收窄，避免一行换行难看
+  const width = qrList.length > 2 ? 180 : 220;
+  for (const q of qrList) q.mdWidth = width;
+
+  const funding = renderFundingYml(opt, qrList);
+  const mdBlock = renderMarkdown(opt, qrList);
+  const sponsorsMd = renderStandaloneMd(opt, qrList);
+  const html = renderHtml(opt, qrList);
+
+  if (opt.dryRun) {
+    console.log('— dry-run —');
+    console.log('图片 →', destDir + '/' + qrList.map(q => q.destName).join(', '));
+    console.log('FUNDING.yml / SPONSORS.md / sponsors.html →', opt.out);
+    console.log('README:', injectReadme(opt, mdBlock).action);
+    return;
+  }
+
+  fs.writeFileSync(path.join(opt.out, '.github', 'FUNDING.yml'), funding);
+  fs.writeFileSync(path.join(opt.out, 'SPONSORS.md'), sponsorsMd);
+  fs.writeFileSync(path.join(opt.out, 'sponsors.html'), html);
+
+  let readmeInfo = null;
+  if (!opt.noReadme) readmeInfo = injectReadme(opt, mdBlock);
+
+  // 汇总
+  const rel = p => path.relative(opt.out, p) || '.';
+  const kb = n => (n / 1024).toFixed(1) + ' KB';
+  console.log('\n  iskill-generate-sponsors\n' + '  ' + '─'.repeat(44));
+  for (const q of qrList) {
+    const dst = rel(path.join(destDir, q.destName));
+    const arrow = q.reuse || q.inPlace ? '沿用已有' : `${kb(q.before)} → ${kb(q.after)}`;
+    console.log(`  ✓ ${q.label.padEnd(8)} ${dst}  ${arrow}`);
+  }
+  console.log(`  ✓ FUNDING.yml        ${rel(path.join(opt.out, '.github', 'FUNDING.yml'))}`);
+  console.log(`  ✓ SPONSORS.md        ${rel(path.join(opt.out, 'SPONSORS.md'))}`);
+  console.log(`  ✓ sponsors.html      ${rel(path.join(opt.out, 'sponsors.html'))}  (${kb(Buffer.byteLength(html))}${opt.standalone ? '，含内嵌图片' : ''})`);
+  if (readmeInfo) console.log(`  ✓ README 区块        ${rel(readmeInfo.file)}  [${readmeInfo.action}]`);
+  const exts = Object.keys(FUNDING_PLATFORMS).filter(k => opt.links[k]);
+  const chan = [];
+  if (exts.length) chan.push(...exts);
+  if (opt.links.paypal) chan.push('custom(paypal)');
+  console.log(`  ${'─'.repeat(44)}`);
+  console.log(`  Sponsor 按钮渠道：${chan.length ? chan.join(' · ') : '无（建议补一个 --paypal / --kofi）'}`);
+  console.log(`  QR 展示渠道：${qrList.map(q => q.label).join(' · ')}`);
+  console.log(`  打开预览：open ${path.join(opt.out, 'sponsors.html')}\n`);
+}
+
+main();
