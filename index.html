@@ -133,7 +133,7 @@ h1{
       </span>
     </header>
     <p class="meta">
-      <span data-zh="更新于" data-en="Generated">更新于</span> 2026-10-01 23:31:20
+      <span data-zh="更新于" data-en="Generated">更新于</span> 2026-10-01 23:36:08
       · <span data-zh="图片在" data-en="Images in">图片在</span> <code>.github/sponsor/</code>
       · <span data-zh="公开预览页" data-en="Public page">公开预览页</span> <a href="sponsors.html">sponsors.html</a>
       · <a href="https://github.com/aispin/iskill-generate-sponsors" target="_blank" rel="noopener noreferrer"><span data-zh="GitHub 仓库" data-en="GitHub repo">GitHub 仓库</span> ↗</a>
@@ -502,11 +502,11 @@ const CSS = `
 .sp-1qs5qt .sp-zoom svg{width:13px;height:13px}
 .sp-1qs5qt .sp-qr:hover .sp-zoom{opacity:1}
 
-/* 链接项与码卡同款卡片外观：同宽、等高（随行内最高者）、同装饰 */
+/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
 .sp-1qs5qt .sp-link{
   position:relative;margin:0;width:200px;max-width:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:9px;text-decoration:none;color:var(--sp-ink);text-align:center;
+  display:flex;flex-direction:column;gap:7px;
+  padding:9px;text-decoration:none;color:var(--sp-ink);
   background:var(--sp-card);border:1px solid var(--sp-line);border-radius:12px;
   box-shadow:var(--sp-shadow);
   transition:transform .18s,box-shadow .18s;
@@ -518,10 +518,14 @@ const CSS = `
 }
 .sp-1qs5qt .sp-link:hover{transform:translateY(-2px);box-shadow:0 4px 14px -8px rgba(16,32,56,.28)}
 .sp-1qs5qt .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset:2px}
-.sp-1qs5qt .sp-link-label{font-weight:650;font-size:13px}
+.sp-1qs5qt .sp-link .sp-link-body{
+  flex:1;min-height:140px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  padding:6px;text-align:center;
+}
+.sp-1qs5qt .sp-link-name{font-weight:650;font-size:14px}
 .sp-1qs5qt .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sp-1qs5qt .sp-link-ic{width:17px;height:17px;color:var(--sp-accent);margin-bottom:3px}
-.sp-1qs5qt .sp-link-ic svg{width:100%;height:100%}
 .sp-1qs5qt .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 .sp-1qs5qt .sp-empty code{background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 
@@ -707,9 +711,13 @@ export default function SponsorCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            &lt;span className="sp-link-ic">&lt;Icon.Link />&lt;/span>
-            &lt;span className="sp-link-label">{l.label}&lt;/span>
-            &lt;span className="sp-link-sub">{l.sub}&lt;/span>
+            &lt;div className="sp-card-head">
+              &lt;span className="sp-chip">&lt;Icon.Link />&lt;span>{l.label}&lt;/span>&lt;/span>
+            &lt;/div>
+            &lt;span className="sp-link-body">
+              &lt;span className="sp-link-name">{l.label}&lt;/span>
+              &lt;span className="sp-link-sub">{l.sub}&lt;/span>
+            &lt;/span>
           &lt;/a>
         )) : (
           &lt;p className="sp-empty" dangerouslySetInnerHTML={{ __html: t.empty }} />
@@ -808,9 +816,13 @@ export default function SponsorCard({
         target="_blank"
         rel="noopener noreferrer"
       >
-        &lt;span class="sp-link-ic">&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">&lt;path d="M14 4h6v6"/>&lt;path d="M20 4l-8.5 8.5"/>&lt;path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/>&lt;/svg>&lt;/span>
-        &lt;span class="sp-link-label">{{ l.label }}&lt;/span>
-        &lt;span class="sp-link-sub">{{ l.sub }}&lt;/span>
+        &lt;div class="sp-card-head">
+          &lt;span class="sp-chip">&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">&lt;path d="M14 4h6v6"/>&lt;path d="M20 4l-8.5 8.5"/>&lt;path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/>&lt;/svg>&lt;span>{{ l.label }}&lt;/span>&lt;/span>
+        &lt;/div>
+        &lt;span class="sp-link-body">
+          &lt;span class="sp-link-name">{{ l.label }}&lt;/span>
+          &lt;span class="sp-link-sub">{{ l.sub }}&lt;/span>
+        &lt;/span>
       &lt;/a>
       &lt;p v-if="!d.links.length" class="sp-empty" v-html="t.empty">&lt;/p>
     &lt;/section>
@@ -1127,11 +1139,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 .sponsor-card .sp-zoom svg{width:13px;height:13px}
 .sponsor-card .sp-qr:hover .sp-zoom{opacity:1}
 
-/* 链接项与码卡同款卡片外观：同宽、等高（随行内最高者）、同装饰 */
+/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
 .sponsor-card .sp-link{
   position:relative;margin:0;width:200px;max-width:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:9px;text-decoration:none;color:var(--sp-ink);text-align:center;
+  display:flex;flex-direction:column;gap:7px;
+  padding:9px;text-decoration:none;color:var(--sp-ink);
   background:var(--sp-card);border:1px solid var(--sp-line);border-radius:12px;
   box-shadow:var(--sp-shadow);
   transition:transform .18s,box-shadow .18s;
@@ -1143,10 +1155,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 }
 .sponsor-card .sp-link:hover{transform:translateY(-2px);box-shadow:0 4px 14px -8px rgba(16,32,56,.28)}
 .sponsor-card .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset:2px}
-.sponsor-card .sp-link-label{font-weight:650;font-size:13px}
+.sponsor-card .sp-link :deep(.sp-link-body){
+  flex:1;min-height:140px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  padding:6px;text-align:center;
+}
+.sponsor-card .sp-link-name{font-weight:650;font-size:14px}
 .sponsor-card .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sponsor-card .sp-link-ic{width:17px;height:17px;color:var(--sp-accent);margin-bottom:3px}
-.sponsor-card .sp-link-ic svg{width:100%;height:100%}
 .sponsor-card .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 .sponsor-card .sp-empty :deep(code){background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 

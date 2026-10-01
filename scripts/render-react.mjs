@@ -197,9 +197,13 @@ export default function SponsorCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            <span className="sp-link-ic"><Icon.Link /></span>
-            <span className="sp-link-label">{l.label}</span>
-            <span className="sp-link-sub">{l.sub}</span>
+            <div className="sp-card-head">
+              <span className="sp-chip"><Icon.Link /><span>{l.label}</span></span>
+            </div>
+            <span className="sp-link-body">
+              <span className="sp-link-name">{l.label}</span>
+              <span className="sp-link-sub">{l.sub}</span>
+            </span>
           </a>
         )) : (
           <p className="sp-empty" dangerouslySetInnerHTML={{ __html: t.empty }} />

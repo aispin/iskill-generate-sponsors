@@ -513,9 +513,13 @@ function renderHtml(opt, qrList, model) {
   const buttons = model.links.length
     ? model.links.map(l => `
         <a class="link" style="--accent:${l.accent}" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">
-          <span class="link-icon">${ICON.link}</span>
-          <span class="link-label">${esc(l.label)}</span>
-          <span class="link-sub">${esc(l.sub)}</span>
+          <div class="card-head">
+            <span class="chip">${ICON.link}<span>${esc(l.label)}</span></span>
+          </div>
+          <span class="link-body">
+            <span class="link-name">${esc(l.label)}</span>
+            <span class="link-sub">${esc(l.sub)}</span>
+          </span>
         </a>`).join('\n')
     : `<p class="empty">${t.empty}</p>`;
 
@@ -827,12 +831,12 @@ body{
 .zoom svg{width:14px;height:14px}
 .qr:hover .zoom{opacity:1}
 
-/* 链接项与码卡同款卡片外观：同宽、等高（随行内最高者）、同装饰 */
+/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
 .link{
   --accent:#10C8A1;
   position:relative;margin:0;width:200px;max-width:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  padding:10px;text-decoration:none;color:var(--ink);text-align:center;
+  display:flex;flex-direction:column;gap:7px;
+  padding:10px;text-decoration:none;color:var(--ink);
   background:var(--card);border:1px solid var(--line);border-radius:14px;
   box-shadow:var(--shadow);
   transition:transform .18s,box-shadow .18s;
@@ -844,10 +848,14 @@ body{
 }
 .link:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
 .link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.link-label{font-weight:650;font-size:14px}
+.link-body{
+  flex:1;min-height:150px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:10px;
+  padding:7px;text-align:center;
+}
+.link-name{font-weight:650;font-size:15px}
 .link-sub{font-size:11.5px;color:var(--ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.link-icon{width:18px;height:18px;color:var(--accent);margin-bottom:3px}
-.link-icon svg{width:100%;height:100%}
 .empty{flex-basis:100%;color:var(--ink2);text-align:center}
 .empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-size:13.5px}
 

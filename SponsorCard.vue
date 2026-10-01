@@ -57,9 +57,13 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-        <span class="sp-link-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/></svg></span>
-        <span class="sp-link-label">{{ l.label }}</span>
-        <span class="sp-link-sub">{{ l.sub }}</span>
+        <div class="sp-card-head">
+          <span class="sp-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/></svg><span>{{ l.label }}</span></span>
+        </div>
+        <span class="sp-link-body">
+          <span class="sp-link-name">{{ l.label }}</span>
+          <span class="sp-link-sub">{{ l.sub }}</span>
+        </span>
       </a>
       <p v-if="!d.links.length" class="sp-empty" v-html="t.empty"></p>
     </section>
@@ -376,11 +380,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 .sponsor-card .sp-zoom svg{width:13px;height:13px}
 .sponsor-card .sp-qr:hover .sp-zoom{opacity:1}
 
-/* 链接项与码卡同款卡片外观：同宽、等高（随行内最高者）、同装饰 */
+/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
 .sponsor-card .sp-link{
   position:relative;margin:0;width:200px;max-width:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:9px;text-decoration:none;color:var(--sp-ink);text-align:center;
+  display:flex;flex-direction:column;gap:7px;
+  padding:9px;text-decoration:none;color:var(--sp-ink);
   background:var(--sp-card);border:1px solid var(--sp-line);border-radius:12px;
   box-shadow:var(--sp-shadow);
   transition:transform .18s,box-shadow .18s;
@@ -392,10 +396,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 }
 .sponsor-card .sp-link:hover{transform:translateY(-2px);box-shadow:0 4px 14px -8px rgba(16,32,56,.28)}
 .sponsor-card .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset:2px}
-.sponsor-card .sp-link-label{font-weight:650;font-size:13px}
+.sponsor-card .sp-link :deep(.sp-link-body){
+  flex:1;min-height:140px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  padding:6px;text-align:center;
+}
+.sponsor-card .sp-link-name{font-weight:650;font-size:14px}
 .sponsor-card .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sponsor-card .sp-link-ic{width:17px;height:17px;color:var(--sp-accent);margin-bottom:3px}
-.sponsor-card .sp-link-ic svg{width:100%;height:100%}
 .sponsor-card .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 .sponsor-card .sp-empty :deep(code){background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 

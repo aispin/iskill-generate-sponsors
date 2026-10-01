@@ -225,11 +225,11 @@ const CSS = `
 .sp-1qs5qt .sp-zoom svg{width:13px;height:13px}
 .sp-1qs5qt .sp-qr:hover .sp-zoom{opacity:1}
 
-/* 链接项与码卡同款卡片外观：同宽、等高（随行内最高者）、同装饰 */
+/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
 .sp-1qs5qt .sp-link{
   position:relative;margin:0;width:200px;max-width:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:9px;text-decoration:none;color:var(--sp-ink);text-align:center;
+  display:flex;flex-direction:column;gap:7px;
+  padding:9px;text-decoration:none;color:var(--sp-ink);
   background:var(--sp-card);border:1px solid var(--sp-line);border-radius:12px;
   box-shadow:var(--sp-shadow);
   transition:transform .18s,box-shadow .18s;
@@ -241,10 +241,14 @@ const CSS = `
 }
 .sp-1qs5qt .sp-link:hover{transform:translateY(-2px);box-shadow:0 4px 14px -8px rgba(16,32,56,.28)}
 .sp-1qs5qt .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset:2px}
-.sp-1qs5qt .sp-link-label{font-weight:650;font-size:13px}
+.sp-1qs5qt .sp-link .sp-link-body{
+  flex:1;min-height:140px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  padding:6px;text-align:center;
+}
+.sp-1qs5qt .sp-link-name{font-weight:650;font-size:14px}
 .sp-1qs5qt .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sp-1qs5qt .sp-link-ic{width:17px;height:17px;color:var(--sp-accent);margin-bottom:3px}
-.sp-1qs5qt .sp-link-ic svg{width:100%;height:100%}
 .sp-1qs5qt .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 .sp-1qs5qt .sp-empty code{background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 
@@ -430,9 +434,13 @@ export default function SponsorCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            <span className="sp-link-ic"><Icon.Link /></span>
-            <span className="sp-link-label">{l.label}</span>
-            <span className="sp-link-sub">{l.sub}</span>
+            <div className="sp-card-head">
+              <span className="sp-chip"><Icon.Link /><span>{l.label}</span></span>
+            </div>
+            <span className="sp-link-body">
+              <span className="sp-link-name">{l.label}</span>
+              <span className="sp-link-sub">{l.sub}</span>
+            </span>
           </a>
         )) : (
           <p className="sp-empty" dangerouslySetInnerHTML={{ __html: t.empty }} />

@@ -82,9 +82,13 @@ export function renderVue(opt, model) {
         target="_blank"
         rel="noopener noreferrer"
       >
-        <span class="sp-link-ic">${SVG.link}</span>
-        <span class="sp-link-label">{{ l.label }}</span>
-        <span class="sp-link-sub">{{ l.sub }}</span>
+        <div class="sp-card-head">
+          <span class="sp-chip">${SVG.link}<span>{{ l.label }}</span></span>
+        </div>
+        <span class="sp-link-body">
+          <span class="sp-link-name">{{ l.label }}</span>
+          <span class="sp-link-sub">{{ l.sub }}</span>
+        </span>
       </a>
       <p v-if="!d.links.length" class="sp-empty" v-html="t.empty"></p>
     </section>
