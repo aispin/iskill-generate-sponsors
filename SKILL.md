@@ -114,7 +114,7 @@ node scripts/gen-sponsors.mjs --help
 | `.github/FUNDING.yml` | 仓库右上角 Sponsor 按钮 |
 | `SPONSORS.md` | 完整赞助页 + 嵌入说明 |
 | `sponsors.html` | 单文件美观网页（响应式，自带中/英切换 + 深浅主题） |
-| `index.html` | 开发者用的源码复制页：全部文本产物分栏展示、一键复制（`--no-source` 关掉） |
+| `index.html` | 开发者用的源码复制页（中英双语）：全部文本产物分栏展示、一键复制、底部 iframe 实时预览赞助页（`--no-source` 关掉） |
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，嵌进任意 React / Vue 项目 |
 | `README.md` 区块 | marker 包裹，重跑只替换这一块 |
 

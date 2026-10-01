@@ -1,10 +1,13 @@
 /**
- * index.html 生成器 —— 面向开发者的「源码复制页」。
+ * index.html 生成器 —— 面向开发者的「源码复制页」（中英双语）。
  * 与公开页 sponsors.html 分开：公开页保持纯净，复制工具不掺进去。
  *
- * 头部版式参照 iskill 系控制台：应用图标 + 大写标题 + 一句描述 + 元信息行（更新于 … · …）。
+ * 头部版式参照 iskill 系控制台：应用图标 + 标题 + 一句描述 + 元信息行。
  * 图标源件 scripts/assets/icon.svg 由 iskill-app-icon 生成（--glyph s --color 主题色），
  * 构建时读进来内联（页面保持单文件零依赖），同时做成 data URI favicon。
+ *
+ * 双语：与 sponsors.html 共享 localStorage key `sponsor-lang` / `sponsor-theme`，
+ * 兜底顺序 #lang= / #theme= → localStorage → 生成配置 --lang。
  *
  * 源码用隐藏 <textarea> 承载（只有 </textarea> 能截断它，产出的 md/yml/jsx/vue
  * 都不会包含），展示时用 textContent 写进 <pre>，复制时直接取 .value ——
@@ -31,47 +34,85 @@ function formatTs(d = new Date()) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
+/** 各产物的双语标签 / 提示（文件名类标签两种语言相同） */
+const ART_I18N = {
+  'readme':      { label: ['README 区块', 'README block'],  hint: ['粘进 README', 'Paste into README'],
+                   meta: ['marker 包裹，可整段替换', 'wrapped in markers, replaceable'] },
+  'funding':     { label: ['FUNDING.yml', 'FUNDING.yml'],   hint: ['Sponsor 按钮', 'Sponsor button'],
+                   meta: ['.github/FUNDING.yml', '.github/FUNDING.yml'] },
+  'sponsors-md': { label: ['SPONSORS.md', 'SPONSORS.md'],   hint: ['完整赞助页', 'Full sponsor page'],
+                   meta: ['整页 Markdown', 'full-page Markdown'] },
+  'jsx':         { label: ['SponsorCard.jsx', 'SponsorCard.jsx'], hint: ['React 组件', 'React component'],
+                   meta: ['零依赖 · 内联样式', 'zero-dep · inline styles'] },
+  'vue':         { label: ['SponsorCard.vue', 'SponsorCard.vue'], hint: ['Vue 组件', 'Vue component'],
+                   meta: ['零依赖 · scoped', 'zero-dep · scoped'] },
+};
+
 export function renderSourceHtml(opt, artifacts) {
   const icon = loadIconSvg();
   const favicon = icon ? `data:image/svg+xml,${encodeURIComponent(icon)}` : null;
+  const zhLede = `${opt.tagline} 点「复制」拿到产物源码，直接粘进你的项目。`;
+  const enLede = `${opt.taglineEn || opt.tagline} Click "Copy" to grab the source and paste it into your project.`;
 
-  const tabs = artifacts.map((a, i) => `
-      <button class="tab${i === 0 ? ' on' : ''}" type="button" data-id="${a.id}">${esc(a.label)}<small>${esc(a.hint)}</small></button>`).join('');
+  const tabs = artifacts.map((a, i) => {
+    const t = ART_I18N[a.id] || { label: [a.label, a.label], hint: [a.hint, a.hint], meta: [a.meta, a.meta] };
+    return `
+      <button class="tab${i === 0 ? ' on' : ''}" type="button" data-id="${a.id}">
+        <span data-zh="${esc(t.label[0])}" data-en="${esc(t.label[1])}">${esc(t.label[0])}</span>
+        <small data-zh="${esc(t.hint[0])}" data-en="${esc(t.hint[1])}">${esc(t.hint[0])}</small>
+      </button>`;
+  }).join('');
 
-  const panes = artifacts.map((a, i) => `
+  const panes = artifacts.map((a, i) => {
+    const t = ART_I18N[a.id] || { label: [a.label, a.label], meta: [a.meta, a.meta] };
+    return `
     <section class="pane${i === 0 ? ' on' : ''}" data-id="${a.id}">
       <div class="pane-head">
-        <span class="pane-name">${esc(a.label)}<small>${esc(a.meta)}</small></span>
-        <button class="copy" type="button">复制</button>
+        <span class="pane-name"><span data-zh="${esc(t.label[0])}" data-en="${esc(t.label[1])}">${esc(t.label[0])}</span><small data-zh="${esc(t.meta[0])}" data-en="${esc(t.meta[1])}">${esc(t.meta[0])}</small></span>
+        <button class="copy" type="button" data-zh="复制" data-en="Copy">复制</button>
       </div>
       <textarea class="src" hidden>${a.code.replace(/</g, '&lt;')}</textarea>
       <pre class="view"><code></code></pre>
-    </section>`).join('');
+    </section>`;
+  }).join('');
 
   const headBrand = `
     <header class="hero">
       ${icon ? `<span class="hero-icon">${icon}</span>` : ''}
       <div class="hero-text">
         <h1>${esc(opt.project)}</h1>
-        <p class="lede">${esc(opt.tagline)} 点「复制」拿到产物源码，直接粘进你的项目。</p>
+        <p class="lede" data-zh="${esc(zhLede)}" data-en="${esc(enLede)}">${esc(zhLede)}</p>
       </div>
+      <span class="lang-sw" role="group" aria-label="Language">
+        <button class="lang-btn" type="button" data-set-lang="zh">中</button><button class="lang-btn" type="button" data-set-lang="en">EN</button>
+      </span>
     </header>
-    <p class="meta">更新于 ${formatTs()} · 图片在 <code>${esc(opt.imgBase)}/</code> · 公开预览页 <a href="sponsors.html">sponsors.html</a></p>`;
+    <p class="meta">
+      <span data-zh="更新于" data-en="Generated">更新于</span> ${formatTs()}
+      · <span data-zh="图片在" data-en="Images in">图片在</span> <code>${esc(opt.imgBase)}/</code>
+      · <span data-zh="公开预览页" data-en="Public page">公开预览页</span> <a href="sponsors.html">sponsors.html</a>
+    </p>`;
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>源码复制 · ${esc(opt.title)}</title>
+<title>Source copy · ${esc(opt.title)}</title>
 ${favicon ? `<link rel="icon" type="image/svg+xml" href="${favicon}">` : ''}
 <meta name="color-scheme" content="light dark">
 <script>
-/* 与 sponsors.html 同款三级兜底：#theme= → localStorage → 系统 */
+/* 与 sponsors.html 同款兜底：#lang= / #theme= → localStorage(sponsor-lang / sponsor-theme) → 生成配置。
+   语言在头脚本里就位，避免首帧闪错语言。 */
 try{
-  var m=(location.hash||'').match(/theme=(light|dark)/);
-  var t=m?m[1]:localStorage.getItem('sponsor-theme');
-  if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
+  var lm=(location.hash||'').match(/lang=(zh|en)/);
+  var lang=lm?lm[1]:localStorage.getItem('sponsor-lang');
+  if(lang!=='zh'&&lang!=='en')lang='${opt.lang === 'en' ? 'en' : 'zh'}';
+  document.documentElement.setAttribute('data-lang',lang);
+  document.documentElement.setAttribute('lang',lang==='en'?'en':'zh-CN');
+  var tm=(location.hash||'').match(/theme=(light|dark)/);
+  var th=tm?tm[1]:localStorage.getItem('sponsor-theme');
+  if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th);
 }catch(e){}
 </script>
 <style>
@@ -97,19 +138,27 @@ body{
   font:14px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background:var(--bg);
 }
+:root[data-lang="en"] body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 .wrap{max-width:1060px;margin:0 auto}
 
-/* ── 头部：图标 + 标题 + 描述，下面一行元信息 ───────────────── */
+/* ── 头部：图标 + 标题 + 描述 + 语言切换，下面一行元信息 ────── */
 .hero{display:flex;align-items:center;gap:15px;min-width:0}
 .hero-icon{flex:none;width:46px;height:46px}
 .hero-icon svg{width:100%;height:100%;display:block;border-radius:11px;box-shadow:0 4px 14px -6px rgba(16,32,56,.35)}
-.hero-text{min-width:0}
+.hero-text{min-width:0;flex:1}
 h1{
   font-size:19px;font-weight:800;letter-spacing:.02em;margin:0;line-height:1.35;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .lede{color:var(--ink2);margin:3px 0 0;font-size:13px;line-height:1.6;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lang-sw{flex:none;display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code-bg)}
+.lang-btn{
+  cursor:pointer;border:0;background:none;color:var(--ink2);
+  font:inherit;font-size:12px;font-weight:600;padding:5px 11px;
+}
+.lang-btn + .lang-btn{border-left:1px solid var(--line)}
+.lang-btn.on{background:var(--accent);color:#fff}
 .meta{color:var(--ink2);font-size:12px;margin:9px 0 24px}
 .meta code{font:11.5px ui-monospace,Menlo,monospace;color:var(--ink);background:var(--code-bg);
   border:1px solid var(--line);border-radius:6px;padding:1px 6px}
@@ -117,11 +166,6 @@ h1{
 .meta a:hover{text-decoration:underline}
 
 .layout{display:grid;grid-template-columns:218px 1fr;gap:18px;align-items:start}
-.preview{margin-top:30px}
-.preview h2{font-size:15px;font-weight:700;margin:0 0 12px}
-.preview h2 small{color:var(--ink2);font-weight:400;font-size:12px;margin-left:9px}
-.frame{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);background:var(--card)}
-.frame iframe{display:block;width:100%;height:min(860px,120vh);border:0}
 .tabs{display:grid;gap:6px;position:sticky;top:18px}
 .tab{
   text-align:left;cursor:pointer;padding:10px 13px;border-radius:12px;
@@ -147,6 +191,11 @@ h1{
 .copy.ok{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .view{margin:0;padding:16px;overflow:auto;max-height:70vh;background:var(--code-bg)}
 .view code{font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;display:block}
+.preview{margin-top:30px}
+.preview h2{font-size:15px;font-weight:700;margin:0 0 12px}
+.preview h2 small{color:var(--ink2);font-weight:400;font-size:12px;margin-left:9px}
+.frame{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);background:var(--card)}
+.frame iframe{display:block;width:100%;height:min(860px,120vh);border:0}
 @media(max-width:720px){
   .layout{grid-template-columns:1fr}
   .tabs{position:static;grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto;padding-bottom:4px}
@@ -169,13 +218,42 @@ ${panes}
   </div>
 
   <section class="preview">
-    <h2>实时预览<small>sponsors.html · iframe 现场渲染，非截图</small></h2>
-    <div class="frame"><iframe src="sponsors.html" title="sponsors.html 实时预览" loading="lazy"></iframe></div>
+    <h2><span data-zh="实时预览" data-en="Live preview">实时预览</span><small>sponsors.html · <span data-zh="iframe 现场渲染，非截图" data-en="rendered live via iframe, not a screenshot">iframe 现场渲染，非截图</span></small></h2>
+    <div class="frame"><iframe src="sponsors.html" title="sponsors.html" loading="lazy"></iframe></div>
   </section>
 </main>
 
 <script>
 (function () {
+  var T = {
+    zh: { ok: '已复制 ✓', fail: '复制失败' },
+    en: { ok: 'Copied ✓', fail: 'Copy failed' },
+  };
+  function curLang() {
+    return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+  function applyLang(lang) {
+    document.documentElement.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-CN');
+    var zh = lang !== 'en';
+    document.querySelectorAll('[data-zh]').forEach(function (el) {
+      var v = el.getAttribute(zh ? 'data-zh' : 'data-en');
+      if (v !== null) el.textContent = v;
+    });
+    document.querySelectorAll('.lang-btn').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.setLang === lang);
+    });
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var lang = b.dataset.setLang;
+      applyLang(lang);
+      try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}   // 与 sponsors.html 共享
+    });
+  });
+  applyLang(curLang());
+
   var codes = {};
   document.querySelectorAll('.pane').forEach(function (pane) {
     var id = pane.dataset.id;
@@ -191,7 +269,8 @@ ${panes}
   });
 
   function flash(btn) {
-    btn.classList.add('ok'); var old = btn.textContent; btn.textContent = '已复制 ✓';
+    var t = T[curLang()];
+    btn.classList.add('ok'); var old = btn.textContent; btn.textContent = t.ok;
     setTimeout(function () { btn.classList.remove('ok'); btn.textContent = old; }, 1600);
   }
   function copyText(text, btn) {
@@ -203,7 +282,7 @@ ${panes}
     var ta = document.createElement('textarea');
     ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); flash(btn); } catch (e) { btn.textContent = '复制失败'; }
+    try { document.execCommand('copy'); flash(btn); } catch (e) { btn.textContent = T[curLang()].fail; }
     document.body.removeChild(ta);
   }
   document.querySelectorAll('.copy').forEach(function (btn) {
