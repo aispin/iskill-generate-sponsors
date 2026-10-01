@@ -147,11 +147,21 @@ ${root} .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset
 ${root} .sp-link ${d('.sp-link-body')}{
   flex:1;min-height:140px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
+  background:
+    radial-gradient(130px 95px at 84% -12%, color-mix(in srgb, var(--sp-accent) 15%, transparent), transparent 70%),
+    radial-gradient(150px 110px at 8% 110%, color-mix(in srgb, var(--sp-accent) 10%, transparent), transparent 72%),
+    repeating-radial-gradient(circle at 108% -18%,
+      color-mix(in srgb, var(--sp-accent) 7%, transparent) 0 1.5px,
+      transparent 1.5px 13px),
+    var(--sp-qr-bg);
+  border:1px solid var(--sp-qr-line);border-radius:8px;
   padding:6px;text-align:center;
+  /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
+  color:#0f1b2d;
 }
 ${root} .sp-link-name{font-weight:650;font-size:14px}
-${root} .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+${root} .sp-link-sub{font-size:11px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ${root} .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 ${root} .sp-empty ${d('code')}{background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 

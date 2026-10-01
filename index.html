@@ -133,7 +133,7 @@ h1{
       </span>
     </header>
     <p class="meta">
-      <span data-zh="更新于" data-en="Generated">更新于</span> 2026-10-01 23:36:08
+      <span data-zh="更新于" data-en="Generated">更新于</span> 2026-10-01 23:41:58
       · <span data-zh="图片在" data-en="Images in">图片在</span> <code>.github/sponsor/</code>
       · <span data-zh="公开预览页" data-en="Public page">公开预览页</span> <a href="sponsors.html">sponsors.html</a>
       · <a href="https://github.com/aispin/iskill-generate-sponsors" target="_blank" rel="noopener noreferrer"><span data-zh="GitHub 仓库" data-en="GitHub repo">GitHub 仓库</span> ↗</a>
@@ -521,11 +521,21 @@ const CSS = `
 .sp-1qs5qt .sp-link .sp-link-body{
   flex:1;min-height:140px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
+  background:
+    radial-gradient(130px 95px at 84% -12%, color-mix(in srgb, var(--sp-accent) 15%, transparent), transparent 70%),
+    radial-gradient(150px 110px at 8% 110%, color-mix(in srgb, var(--sp-accent) 10%, transparent), transparent 72%),
+    repeating-radial-gradient(circle at 108% -18%,
+      color-mix(in srgb, var(--sp-accent) 7%, transparent) 0 1.5px,
+      transparent 1.5px 13px),
+    var(--sp-qr-bg);
+  border:1px solid var(--sp-qr-line);border-radius:8px;
   padding:6px;text-align:center;
+  /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
+  color:#0f1b2d;
 }
 .sp-1qs5qt .sp-link-name{font-weight:650;font-size:14px}
-.sp-1qs5qt .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-1qs5qt .sp-link-sub{font-size:11px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-1qs5qt .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 .sp-1qs5qt .sp-empty code{background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 
@@ -1158,11 +1168,21 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 .sponsor-card .sp-link :deep(.sp-link-body){
   flex:1;min-height:140px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+  /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
+  background:
+    radial-gradient(130px 95px at 84% -12%, color-mix(in srgb, var(--sp-accent) 15%, transparent), transparent 70%),
+    radial-gradient(150px 110px at 8% 110%, color-mix(in srgb, var(--sp-accent) 10%, transparent), transparent 72%),
+    repeating-radial-gradient(circle at 108% -18%,
+      color-mix(in srgb, var(--sp-accent) 7%, transparent) 0 1.5px,
+      transparent 1.5px 13px),
+    var(--sp-qr-bg);
+  border:1px solid var(--sp-qr-line);border-radius:8px;
   padding:6px;text-align:center;
+  /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
+  color:#0f1b2d;
 }
 .sponsor-card .sp-link-name{font-weight:650;font-size:14px}
-.sponsor-card .sp-link-sub{font-size:11px;color:var(--sp-ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sponsor-card .sp-link-sub{font-size:11px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sponsor-card .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
 .sponsor-card .sp-empty :deep(code){background:var(--sp-code-bg);padding:2px 6px;border-radius:6px;font-size:12.5px}
 

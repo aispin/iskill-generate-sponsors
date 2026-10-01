@@ -851,11 +851,21 @@ body{
 .link-body{
   flex:1;min-height:150px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:10px;
+  /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
+  background:
+    radial-gradient(140px 100px at 84% -12%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%),
+    radial-gradient(160px 120px at 8% 110%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%),
+    repeating-radial-gradient(circle at 108% -18%,
+      color-mix(in srgb, var(--accent) 7%, transparent) 0 1.5px,
+      transparent 1.5px 13px),
+    var(--qr-bg);
+  border:1px solid var(--qr-line);border-radius:10px;
   padding:7px;text-align:center;
+  /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
+  color:#0f1b2d;
 }
 .link-name{font-weight:650;font-size:15px}
-.link-sub{font-size:11.5px;color:var(--ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-sub{font-size:11.5px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{flex-basis:100%;color:var(--ink2);text-align:center}
 .empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-size:13.5px}
 
