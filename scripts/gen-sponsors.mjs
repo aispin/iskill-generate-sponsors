@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { GEN_URL, UI, MD, buildModel, pick, qrText, fill } from './lib/model.mjs';
 import { renderReact } from './render-react.mjs';
 import { renderVue } from './render-vue.mjs';
+import { renderSourceHtml } from './render-source.mjs';
 
 // ─────────────────────────────────────────────────────────────── 常量
 
@@ -119,6 +120,7 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --style card|minimal     html 风格（默认 card；React/Vue 组件恒为 card）
   --standalone             图片转 base64 内嵌，产物自包含（html 与组件都生效）
   --no-components          不输出 SponsorCard.jsx / SponsorCard.vue
+  --no-source              不输出 sponsors-source.html（源码一键复制页）
   --components-dir <目录>  组件输出目录（默认同 --out 根目录）
   --no-readme              不写入 README
   --no-optimize            不压缩图片，原样拷贝
@@ -220,6 +222,7 @@ function buildOptions(args) {
     noOptimize: !!args.noOptimize,
     noComponents: !!args.noComponents || !!cfg.noComponents,
     componentsDir: path.resolve(args.componentsDir || cfg.componentsDir || args.out || cfg.out || '.'),
+    noSource: !!args.noSource || !!cfg.noSource,
     dryRun: !!args.dryRun,
     readme: args.readme || cfg.readme || 'README.md',
     markStart: cfg.markerStart || MARK_START,
@@ -1044,11 +1047,24 @@ function main() {
   const react = opt.noComponents ? null : renderReact(opt, model);
   const vue = opt.noComponents ? null : renderVue(opt, model);
 
+  // 开发者用的源码复制页（与公开页分开，sponsors.html 保持纯净）
+  const sourceArtifacts = [
+    { id: 'readme', label: 'README 区块', hint: '粘进 README', meta: 'marker 包裹，可整段替换', code: mdBlock },
+    { id: 'funding', label: 'FUNDING.yml', hint: 'Sponsor 按钮', meta: '.github/FUNDING.yml', code: funding },
+    { id: 'sponsors-md', label: 'SPONSORS.md', hint: '完整赞助页', meta: `${(Buffer.byteLength(sponsorsMd) / 1024).toFixed(1)} KB`, code: sponsorsMd },
+  ];
+  if (react) sourceArtifacts.push(
+    { id: 'jsx', label: 'SponsorCard.jsx', hint: 'React 组件', meta: '零依赖 · 内联样式', code: react },
+    { id: 'vue', label: 'SponsorCard.vue', hint: 'Vue 组件', meta: '零依赖 · scoped', code: vue },
+  );
+  const sourceHtml = opt.noSource ? null : renderSourceHtml(opt, sourceArtifacts);
+
   if (opt.dryRun) {
     console.log('— dry-run —');
     console.log('图片 →', destDir + '/' + qrList.map(q => q.destName).join(', '));
     console.log('FUNDING.yml / SPONSORS.md / sponsors.html →', opt.out);
     if (!opt.noComponents) console.log('SponsorCard.jsx / SponsorCard.vue →', opt.componentsDir);
+    if (sourceHtml) console.log('sponsors-source.html →', opt.out);
     console.log('README:', injectReadme(opt, mdBlock).action);
     return;
   }
@@ -1057,6 +1073,7 @@ function main() {
   fs.writeFileSync(path.join(opt.out, '.github', 'FUNDING.yml'), funding);
   fs.writeFileSync(path.join(opt.out, 'SPONSORS.md'), sponsorsMd);
   fs.writeFileSync(path.join(opt.out, 'sponsors.html'), html);
+  if (sourceHtml) fs.writeFileSync(path.join(opt.out, 'sponsors-source.html'), sourceHtml);
 
   const jsxFile = path.join(opt.componentsDir, 'SponsorCard.jsx');
   const vueFile = path.join(opt.componentsDir, 'SponsorCard.vue');
@@ -1077,6 +1094,7 @@ function main() {
   console.log(`  ✓ FUNDING.yml        ${rel(path.join(opt.out, '.github', 'FUNDING.yml'))}`);
   console.log(`  ✓ SPONSORS.md        ${rel(path.join(opt.out, 'SPONSORS.md'))}`);
   console.log(`  ✓ sponsors.html      ${rel(path.join(opt.out, 'sponsors.html'))}  (${kb(Buffer.byteLength(html))}${opt.standalone ? '，含内嵌图片' : ''})`);
+  if (sourceHtml) console.log(`  ✓ 源码复制页         ${rel(path.join(opt.out, 'sponsors-source.html'))}  (${sourceArtifacts.length} 个产物一键复制)`);
   if (react) {
     console.log(`  ✓ SponsorCard.jsx    ${rel(jsxFile)}  (${kb(Buffer.byteLength(react))})`);
     console.log(`  ✓ SponsorCard.vue    ${rel(vueFile)}  (${kb(Buffer.byteLength(vue))})`);

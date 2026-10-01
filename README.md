@@ -27,6 +27,7 @@ bash scripts/make-all.sh --config my.config.json --out .
 | `.github/FUNDING.yml` | GitHub 仓库右上角的 **Sponsor 按钮** |
 | `SPONSORS.md` | 完整赞助页 + 嵌入说明（Markdown） |
 | `sponsors.html` | 单文件网页：响应式布局，内置中/英切换 + 深浅主题 + 点击放大灯箱 + 打印样式 |
+| `sponsors-source.html` | 源码复制页：README 区块 / FUNDING.yml / SPONSORS.md / 组件源码分栏展示，一键复制 |
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，与 html 同源的数据/样式/文案，直接嵌进 React 或 Vue 项目 |
 | `README.md` 区块 | 由两个**独占一行**的 HTML 注释 `sponsors:start` / `sponsors:end` 包裹，可重复运行覆盖 |
 
