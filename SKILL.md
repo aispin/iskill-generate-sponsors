@@ -103,7 +103,7 @@ node scripts/gen-sponsors.mjs --help
 | `--langs zh,en` | 可选语言集合；只给一种时隐藏切换按钮 |
 | `--no-components` | 不输出 SponsorCard.jsx / SponsorCard.vue |
 | `--components-dir <目录>` | 组件输出目录（默认同 `--out` 根目录） |
-| `--no-source` | 不输出 sponsors-source.html（源码一键复制页） |
+| `--no-source` | 不输出 index.html（源码一键复制页） |
 | `--no-readme` / `--no-optimize` / `--dry-run` | 不写 README / 不压图 / 只预演 |
 
 ## 产物
@@ -114,7 +114,7 @@ node scripts/gen-sponsors.mjs --help
 | `.github/FUNDING.yml` | 仓库右上角 Sponsor 按钮 |
 | `SPONSORS.md` | 完整赞助页 + 嵌入说明 |
 | `sponsors.html` | 单文件美观网页（响应式，自带中/英切换 + 深浅主题） |
-| `sponsors-source.html` | 开发者用的源码复制页：全部文本产物分栏展示、一键复制（`--no-source` 关掉） |
+| `index.html` | 开发者用的源码复制页：全部文本产物分栏展示、一键复制（`--no-source` 关掉） |
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，嵌进任意 React / Vue 项目 |
 | `README.md` 区块 | marker 包裹，重跑只替换这一块 |
 
@@ -216,7 +216,8 @@ iskill-generate-sponsors/
 │   ├── make-all.sh         找 node + 透传参数的一键包装
 │   ├── render-react.mjs    SponsorCard.jsx 生成器
 │   ├── render-vue.mjs      SponsorCard.vue 生成器
-│   ├── render-source.mjs   sponsors-source.html 生成器（源码一键复制页）
+│   ├── render-source.mjs   index.html 生成器（源码一键复制页）
+│   ├── assets/icon.svg     S 图标源件（iskill-app-icon 生成，内联进 index.html 头部）
 │   ├── lib/
 │   │   ├── model.mjs       数据模型 + 双语文案（html/jsx/vue 共用）
 │   │   └── component-css.mjs  组件 scoped 样式骨架（jsx/vue 共用）

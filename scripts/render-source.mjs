@@ -1,16 +1,40 @@
 /**
- * sponsors-source.html 生成器 —— 面向开发者的「源码复制页」。
+ * index.html 生成器 —— 面向开发者的「源码复制页」。
  * 与公开页 sponsors.html 分开：公开页保持纯净，复制工具不掺进去。
+ *
+ * 头部版式参照 iskill 系控制台：应用图标 + 大写标题 + 一句描述 + 元信息行（更新于 … · …）。
+ * 图标源件 scripts/assets/icon.svg 由 iskill-app-icon 生成（--glyph s --color 主题色），
+ * 构建时读进来内联（页面保持单文件零依赖），同时做成 data URI favicon。
  *
  * 源码用隐藏 <textarea> 承载（只有 </textarea> 能截断它，产出的 md/yml/jsx/vue
  * 都不会包含），展示时用 textContent 写进 <pre>，复制时直接取 .value ——
  * 全程不经 innerHTML，无需转义。
  */
-import { GEN_URL } from './lib/model.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/** 读图标源件并内联（找不到就退化为无图标的纯文字头部，不阻断生成） */
+function loadIconSvg() {
+  try {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    return fs.readFileSync(path.join(here, 'assets', 'icon.svg'), 'utf8')
+      .replace(/\n\s*/g, ' ')
+      .replace(/aria-label="[^"]*"/, 'aria-label="app icon"');
+  } catch { return null; }
+}
+
+function formatTs(d = new Date()) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 export function renderSourceHtml(opt, artifacts) {
+  const icon = loadIconSvg();
+  const favicon = icon ? `data:image/svg+xml,${encodeURIComponent(icon)}` : null;
+
   const tabs = artifacts.map((a, i) => `
       <button class="tab${i === 0 ? ' on' : ''}" type="button" data-id="${a.id}">${esc(a.label)}<small>${esc(a.hint)}</small></button>`).join('');
 
@@ -24,12 +48,23 @@ export function renderSourceHtml(opt, artifacts) {
       <pre class="view"><code></code></pre>
     </section>`).join('');
 
+  const headBrand = `
+    <header class="hero">
+      ${icon ? `<span class="hero-icon">${icon}</span>` : ''}
+      <div class="hero-text">
+        <h1>${esc(opt.project.toUpperCase())} <span class="hero-sub">源码复制</span></h1>
+        <p class="lede">${esc(opt.tagline)} 点「复制」拿到产物源码，直接粘进你的项目。</p>
+      </div>
+    </header>
+    <p class="meta">更新于 ${formatTs()} · 图片在 <code>${esc(opt.imgBase)}/</code> · 公开预览页 <a href="sponsors.html">sponsors.html</a></p>`;
+
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>源码复制 · ${esc(opt.title)}</title>
+${favicon ? `<link rel="icon" type="image/svg+xml" href="${favicon}">` : ''}
 <meta name="color-scheme" content="light dark">
 <script>
 /* 与 sponsors.html 同款三级兜底：#theme= → localStorage → 系统 */
@@ -58,14 +93,30 @@ try{
 }}
 *{box-sizing:border-box}
 body{
-  margin:0; padding:32px 18px 56px; color:var(--ink);
+  margin:0; padding:34px 18px 56px; color:var(--ink);
   font:14px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background:var(--bg);
 }
 .wrap{max-width:1060px;margin:0 auto}
-h1{font-size:20px;margin:0 0 4px}
-.lede{color:var(--ink2);margin:0 0 22px;font-size:13px}
-.lede a{color:var(--accent);text-decoration:none}
+
+/* ── 头部：图标 + 标题 + 描述，下面一行元信息 ───────────────── */
+.hero{display:flex;align-items:center;gap:15px;min-width:0}
+.hero-icon{flex:none;width:46px;height:46px}
+.hero-icon svg{width:100%;height:100%;display:block;border-radius:11px;box-shadow:0 4px 14px -6px rgba(16,32,56,.35)}
+.hero-text{min-width:0}
+h1{
+  font-size:19px;font-weight:800;letter-spacing:.02em;margin:0;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.hero-sub{color:var(--accent)}
+.lede{color:var(--ink2);margin:3px 0 0;font-size:13px;line-height:1.6;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{color:var(--ink2);font-size:12px;margin:9px 0 24px}
+.meta code{font:11.5px ui-monospace,Menlo,monospace;color:var(--ink);background:var(--code-bg);
+  border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.meta a{color:var(--accent);text-decoration:none}
+.meta a:hover{text-decoration:underline}
+
 .layout{display:grid;grid-template-columns:218px 1fr;gap:18px;align-items:start}
 .tabs{display:grid;gap:6px;position:sticky;top:18px}
 .tab{
@@ -96,13 +147,17 @@ h1{font-size:20px;margin:0 0 4px}
   .layout{grid-template-columns:1fr}
   .tabs{position:static;grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto;padding-bottom:4px}
   .tab small{display:none}
+  .hero{gap:12px}
+  .hero-icon{width:40px;height:40px}
+  h1{font-size:16px;white-space:normal;overflow:visible;text-overflow:clip}
+  .lede{white-space:normal}
+  .meta{display:flex;flex-wrap:wrap;gap:2px 10px}
 }
 </style>
 </head>
 <body>
 <main class="wrap">
-  <h1>源码复制 · ${esc(opt.project)}</h1>
-  <p class="lede">下面是本次生成的全部文本产物，点「复制」直接粘贴进你的项目。图片在 <code>${esc(opt.imgBase)}/</code>；公开预览页是 <a href="sponsors.html">sponsors.html</a>。</p>
+${headBrand}
   <div class="layout">
     <nav class="tabs">${tabs}
     </nav>

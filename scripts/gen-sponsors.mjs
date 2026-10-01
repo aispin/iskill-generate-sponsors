@@ -120,7 +120,7 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --style card|minimal     html 风格（默认 card；React/Vue 组件恒为 card）
   --standalone             图片转 base64 内嵌，产物自包含（html 与组件都生效）
   --no-components          不输出 SponsorCard.jsx / SponsorCard.vue
-  --no-source              不输出 sponsors-source.html（源码一键复制页）
+  --no-source              不输出 index.html（源码一键复制页）
   --components-dir <目录>  组件输出目录（默认同 --out 根目录）
   --no-readme              不写入 README
   --no-optimize            不压缩图片，原样拷贝
@@ -1064,7 +1064,7 @@ function main() {
     console.log('图片 →', destDir + '/' + qrList.map(q => q.destName).join(', '));
     console.log('FUNDING.yml / SPONSORS.md / sponsors.html →', opt.out);
     if (!opt.noComponents) console.log('SponsorCard.jsx / SponsorCard.vue →', opt.componentsDir);
-    if (sourceHtml) console.log('sponsors-source.html →', opt.out);
+    if (sourceHtml) console.log('index.html →', opt.out);
     console.log('README:', injectReadme(opt, mdBlock).action);
     return;
   }
@@ -1073,7 +1073,7 @@ function main() {
   fs.writeFileSync(path.join(opt.out, '.github', 'FUNDING.yml'), funding);
   fs.writeFileSync(path.join(opt.out, 'SPONSORS.md'), sponsorsMd);
   fs.writeFileSync(path.join(opt.out, 'sponsors.html'), html);
-  if (sourceHtml) fs.writeFileSync(path.join(opt.out, 'sponsors-source.html'), sourceHtml);
+  if (sourceHtml) fs.writeFileSync(path.join(opt.out, 'index.html'), sourceHtml);
 
   const jsxFile = path.join(opt.componentsDir, 'SponsorCard.jsx');
   const vueFile = path.join(opt.componentsDir, 'SponsorCard.vue');
@@ -1094,7 +1094,7 @@ function main() {
   console.log(`  ✓ FUNDING.yml        ${rel(path.join(opt.out, '.github', 'FUNDING.yml'))}`);
   console.log(`  ✓ SPONSORS.md        ${rel(path.join(opt.out, 'SPONSORS.md'))}`);
   console.log(`  ✓ sponsors.html      ${rel(path.join(opt.out, 'sponsors.html'))}  (${kb(Buffer.byteLength(html))}${opt.standalone ? '，含内嵌图片' : ''})`);
-  if (sourceHtml) console.log(`  ✓ 源码复制页         ${rel(path.join(opt.out, 'sponsors-source.html'))}  (${sourceArtifacts.length} 个产物一键复制)`);
+  if (sourceHtml) console.log(`  ✓ 源码复制页         ${rel(path.join(opt.out, 'index.html'))}  (${sourceArtifacts.length} 个产物一键复制)`);
   if (react) {
     console.log(`  ✓ SponsorCard.jsx    ${rel(jsxFile)}  (${kb(Buffer.byteLength(react))})`);
     console.log(`  ✓ SponsorCard.vue    ${rel(vueFile)}  (${kb(Buffer.byteLength(vue))})`);
