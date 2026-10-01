@@ -26,8 +26,8 @@ bash scripts/make-all.sh --config my.config.json --out .
 | `.github/sponsor/*.jpg` | 压缩后的收款码（长边 ≤ 800，专供 README 内联） |
 | `.github/FUNDING.yml` | GitHub 仓库右上角的 **Sponsor 按钮** |
 | `SPONSORS.md` | 完整赞助页 + 嵌入说明（Markdown） |
-| `sponsors.html` | 单文件网页：响应式布局，内置中/英切换 + 深浅主题 + 点击放大灯箱 + 打印样式 |
-| `index.html` | 源码复制页：README 区块 / FUNDING.yml / SPONSORS.md / 组件源码分栏展示，一键复制，底部实时预览 |
+| `sponsors.html` | 单文件网页：响应式布局，内置中/英切换 + 深浅主题 + 点击放大灯箱 + 打印样式。恒定为**两段式**（上半整页卡片 + 下半弹层入口），移动端单列时卡片通栏、码跟着放大 |
+| `usage.html` | 源码复制 / 用法页：README 区块 / FUNDING.yml / SPONSORS.md / 组件源码分栏展示，一键复制，底部实时预览；自带头部主题切换与代码软换行开关（单文件零依赖，可被 iframe 嵌走） |
 | `SponsorCard.jsx` / `SponsorCard.vue` | 零依赖 scoped 组件，与 html 同源的数据/样式/文案，直接嵌进 React 或 Vue 项目 |
 | `README.md` 区块 | 由两个**独占一行**的 HTML 注释 `sponsors:start` / `sponsors:end` 包裹，可重复运行覆盖 |
 

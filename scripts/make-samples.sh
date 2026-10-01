@@ -7,7 +7,8 @@
 #       改了 HTML 版式后跑一次，文档里的图就跟着更新，不会撒谎。
 #
 # 产出：assets/sample-sponsors.jpg（亮色·中文）、-dark.jpg（暗色·英文）、
-#       -en.jpg（亮色·英文）、-mobile.jpg（390px 窄屏）、sample-readme-block.jpg
+#       -en.jpg（亮色·英文）、-mobile.jpg（390px 窄屏·单列）、
+#       -popup.jpg（弹层）、sample-readme-block.jpg
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,17 +26,25 @@ fi
 [ -n "${NODE_BIN}" ] || { echo "找不到 node" >&2; exit 1; }
 
 # 1) 先确保 sponsors.html 是最新的
+#    页面形态已**固定为两段式**：上半整页卡片 + 下半弹层入口（弹层用 #pop=1 直接开）。
+#    所以文档里贴一张 sponsors.html 就能同时讲清两种形态，不再需要单独生成 popup 页。
 bash "${HERE}/make-all.sh" --config "${ROOT}/sponsors.config.json" --out "${ROOT}" >/dev/null
 
 # 2) 无头渲染两套配色的 sponsors.html
+#    高度按内容给 —— 给太高下面会留一大片空白，给太矮会截掉页脚。
+#    实测（2026-10-02 改版后）：1000px 宽内容到 ~669px、390px 宽到 ~1459px。
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
-"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/light.png"  1000 1200 light zh
-"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/en.png"     1000 1200 light en
-"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/dark.png"   1000 1200 dark  en
-# 窄屏：shoot.mjs 会自动用 iframe 绕过 headless 的 500px 视口下限
-"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/mobile.png"  390 1500 light zh
+"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/light.png"  1000 700  light zh
+"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/en.png"     1000 700  light en
+"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/dark.png"   1000 700  dark  en
+# 窄屏：单列卡片通栏（= 视口 − 80），页面比桌面长不少
+"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html" "${TMP}/mobile.png"  390 1470 light zh
+
+# 2b) 弹层 —— 直接拍上面这份固定页，URL 带 #pop=1 开弹层（不必再单独生成一页）
+#     ⚠️ 弹层版式（一行放几个）改过就要重跑，否则文档样本会撒谎
+"${NODE_BIN}" "${HERE}/shoot.mjs" "${ROOT}/sponsors.html#pop=1" "${TMP}/popup.png" 1180 820 light zh
 
 # 3) README 区块预览（渲染 SPONSORS.md 里的**真实** marker 区块）
 #    预览页写在临时目录，所以要给它 <base> 指回仓库根，否则相对图片路径全断
@@ -49,6 +58,7 @@ for pair in \
   "en:${ROOT}/assets/sample-sponsors-en.jpg" \
   "dark:${ROOT}/assets/sample-sponsors-dark.jpg" \
   "mobile:${ROOT}/assets/sample-mobile.jpg" \
+  "popup:${ROOT}/assets/sample-popup.jpg" \
   "block:${ROOT}/assets/sample-readme-block.jpg"
 do
   src="${pair%%:*}"; dst="${pair##*:}"

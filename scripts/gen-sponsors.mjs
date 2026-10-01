@@ -119,11 +119,16 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --prefix <前缀>          输出图片文件名前缀（默认空）
   --max <像素>             图片长边上限（默认 800）
   --style card|minimal     html 风格（默认 card；React/Vue 组件恒为 card）
-  --mode inline|popup      页面形态（默认 inline 整页展示）；popup 时页面只放一个
-                           赞助按钮，点开弹层展示全部方式，ESC / 点遮罩 / × 关闭
+  --mode page|embed
+                           产物形态。默认 page：页面是**固定两段式**（整页卡片 + 弹层入口，
+                           形态不可切），外加 FUNDING.yml / README 区块 / 组件；
+                           embed=**不生成页面**，只产出可嵌进任意页面的 sponsor-embed.js
+                           （Shadow DOM，跟随宿主语言/主题）。
+                           旧值 inline|popup|demo 已并入 page，传了只提示、按默认处理
+  --embed-out <文件>       embed 片段的文件名（默认 sponsor-embed.js，相对 --out）
   --standalone             图片转 base64 内嵌，产物自包含（html 与组件都生效）
   --no-components          不输出 SponsorCard.jsx / SponsorCard.vue
-  --no-source              不输出 index.html（源码一键复制页）
+  --no-source              不输出 usage.html（源码一键复制页）
   --components-dir <目录>  组件输出目录（默认同 --out 根目录）
   --no-readme              不写入 README
   --no-optimize            不压缩图片，原样拷贝
@@ -224,8 +229,12 @@ function buildOptions(args) {
     prefix: args.prefix ?? cfg.prefix ?? '',
     max: Number(args.max || cfg.max || 800),
     style: args.style || cfg.style || 'card',
-    // 页面形态：inline=整页展示（默认）；popup=页面只放一个赞助按钮，点开弹层
-    mode: args.mode === 'popup' || cfg.mode === 'popup' ? 'popup' : 'inline',
+    // 产物形态只有两档：
+    //   page （默认）= 生成**固定两段式**页面（整页卡片 + 弹层入口）+ FUNDING / README / 组件
+    //   embed        = 不生成页面，只产出可嵌进任意页面的 sponsor-embed.js
+    // 旧值 inline / popup / demo 已全部并入 page —— 页面形态不再可切，见 renderHtml 的说明。
+    mode: normalizeMode(args.mode || cfg.mode),
+    embedOut: args.embedOut || cfg.embedOut || 'sponsor-embed.js',
     standalone: !!args.standalone || !!cfg.standalone,
     skipCrop: !!args.skipCrop || !!cfg.skipCrop,
     noReadme: !!args.noReadme,
@@ -244,6 +253,14 @@ function buildOptions(args) {
 }
 
 const trimSlash = s => String(s).replace(/^\.?\/+/, '').replace(/\/+$/, '');
+
+/** 已退休的 --mode 值：页面形态固定后它们没有区分的意义，一律当默认页处理 */
+const LEGACY_MODES = { inline: 1, popup: 1, demo: 1 };
+
+/** 产物形态归一：只有 embed 是另一档，其余（含旧值 / 空值）一律 page */
+function normalizeMode(v) {
+  return String(v || '').toLowerCase() === 'embed' ? 'embed' : 'page';
+}
 
 // ─────────────────────────────────────────────────── 收款码发现与处理
 
@@ -528,7 +545,11 @@ function renderHtml(opt, qrList, model) {
     : `<p class="empty">${t.empty}</p>`;
 
   const multi = opt.langs.length > 1;
-  const css = (minimal ? cssMinimal() : cssCard()) + (opt.mode === 'popup' ? cssPopup() : '');
+  // 页面形态已固定：**两段式** —— 第一段整页卡片（真实内容），第二段弹层入口。
+  // 弹层样式与 embed 共用 cssPopup()，所以这里恒定注入（不再有 --mode 形态分支）。
+  const css = (minimal ? cssMinimal() : cssCard())
+    + cssPopup()
+    + cssPopEntry();
 
   return `<!DOCTYPE html>
 <html lang="${lang === 'en' ? 'en' : 'zh-CN'}">
@@ -568,12 +589,34 @@ ${css}
     <span class="ic-sun">${ICON.sun}</span><span class="ic-moon">${ICON.moon}</span>
   </button>
 </div>
-${opt.mode === 'popup' ? `
-<main class="wrap pop-host">
-  <button class="sponsor-btn" type="button" style="--brand:${opt.accent}" aria-haspopup="dialog" aria-label="${esc(t.popAria)}">
-    ${ICON.heart}<span data-slot="pop-label">${esc(t.badge)}</span>
-  </button>
+<main class="wrap">
+  <header class="hero">
+    <span class="badge">${ICON.heart}<span data-slot="badge">${esc(t.badge)}</span></span>
+    <h1 data-slot="title">${esc(L0('title'))}</h1>
+    <p class="lede" data-slot="tagline">${esc(L0('tagline'))}</p>
+  </header>
+
+  <section class="qrs">
+${cards}
+${buttons}
+  </section>
+
+  ${L0('note') ? `<p class="note" data-slot="note">${esc(L0('note'))}</p>` : ''}
+
+  <!-- 第二段：弹层入口 —— 页面的「弹层形态」就是这段按钮 + 下面的 .pop。
+       这页既是仓库展示页、也是用户直接部署的赞助页，所以文案走访客口吻，
+       不出现命令行 / 形态名。 -->
+  <section class="pop-entry">
+    <h2 data-slot="pop-sec-title">${esc(t.popSecTitle)}</h2>
+    <p data-slot="pop-sec-hint">${esc(t.popSecHint)}</p>
+    <button class="sponsor-btn" type="button" style="--brand:${opt.accent}" aria-haspopup="dialog" aria-label="${esc(t.popAria)}">
+      ${ICON.heart}<span data-slot="pop-label">${esc(t.badge)}</span>
+    </button>
+  </section>
+
+  <footer class="foot" data-slot="foot">${L0('foot')}</footer>
 </main>
+
 <div class="pop" hidden role="dialog" aria-modal="true">
   <div class="pop-card">
     <button class="pop-close" type="button" aria-label="${esc(t.popCloseAria)}">×</button>
@@ -590,24 +633,6 @@ ${buttons}
     ${L0('note') ? `<p class="note" data-slot="note">${esc(L0('note'))}</p>` : ''}
   </div>
 </div>
-` : `
-<main class="wrap">
-  <header class="hero">
-    <span class="badge">${ICON.heart}<span data-slot="badge">${esc(t.badge)}</span></span>
-    <h1 data-slot="title">${esc(L0('title'))}</h1>
-    <p class="lede" data-slot="tagline">${esc(L0('tagline'))}</p>
-  </header>
-
-  <section class="qrs">
-${cards}
-${buttons}
-  </section>
-
-  ${L0('note') ? `<p class="note" data-slot="note">${esc(L0('note'))}</p>` : ''}
-
-  <footer class="foot" data-slot="foot">${L0('foot')}</footer>
-</main>
-`}
 
 <div class="lightbox" hidden>
   <button class="lb-close" type="button" aria-label="${esc(t.closeAria)}">×</button>
@@ -651,6 +676,8 @@ var SPONSOR = ${embedJson(model)};
     all('.lang-toggle',             function (e) { e.setAttribute('aria-label', t.langAria); e.setAttribute('title', t.langAria); });
     all('.lb-close',                function (e) { e.setAttribute('aria-label', t.closeAria); });
     all('[data-slot="pop-label"]',  function (e) { e.textContent = t.badge; });
+    all('[data-slot="pop-sec-title"]', function (e) { e.textContent = t.popSecTitle; });
+    all('[data-slot="pop-sec-hint"]',  function (e) { e.textContent = t.popSecHint; });
     all('.sponsor-btn',             function (e) { e.setAttribute('aria-label', t.popAria); });
     all('.pop-close',               function (e) { e.setAttribute('aria-label', t.popCloseAria); });
 
@@ -697,7 +724,7 @@ var SPONSOR = ${embedJson(model)};
     else if (pop && !pop.hidden) popClose();       // 其次关弹层
   });
 
-  /* ── 弹层模式（--mode popup）：赞助按钮 → 弹层 ── */
+  /* ── 弹层入口（页面第二段的按钮）→ 弹层 ── */
   var pop = document.querySelector('.pop');
   var popBtn = document.querySelector('.sponsor-btn');
   function popOpen() { pop.hidden = false; if (popBtn) popBtn.style.visibility = 'hidden'; document.body.style.overflow = 'hidden'; }
@@ -706,6 +733,16 @@ var SPONSOR = ${embedJson(model)};
     popBtn.addEventListener('click', popOpen);
     pop.addEventListener('click', function (e) {
       if (e.target === pop || (e.target.closest && e.target.closest('.pop-close'))) popClose();
+    });
+    /* URL 带 #pop=1 直接打开弹层 —— 与 #theme= / #lang= 同一套路：
+       分享链接、无头截图都能复现「弹层打开」这一态（否则文档样本只能手工截）。
+       ⚠️ 必须**同时**监听 hashchange：有的自动化工具（agent-browser 的 open）
+       是先导航、再把 fragment 补上，脚本执行那一刻 location.hash 还是空的 ——
+       只判一次的话，#pop=1 会静默失效（实测踩过）。
+       注意：本注释在生成器的模板字符串里，别写反引号。 */
+    if (/(^|[#&])pop=1/.test(location.hash || '')) popOpen();
+    addEventListener('hashchange', function () {
+      if (/(^|[#&])pop=1/.test(location.hash || '')) popOpen();
     });
   }
 
@@ -731,7 +768,7 @@ var SPONSOR = ${embedJson(model)};
     postSync();
   });
 
-  /* ── 被嵌入时（如 index.html 的实时预览 iframe）与父页双向同步 ──
+  /* ── 被嵌入时（如 usage.html 的实时预览 iframe）与父页双向同步 ──
      收到父页的 sponsorSync：应用语言 / 主题（不回写 localStorage，父页已写），
      然后回 ack —— 父页据此决定要不要走「重载 iframe」的兜底。 */
   function postSync(theme) {
@@ -767,6 +804,337 @@ var SPONSOR = ${embedJson(model)};
 /** JSON 嵌进 <script>：转义 </ 防止提前闭合标签 */
 function embedJson(obj) {
   return JSON.stringify(obj).replace(/<\//g, '<\\/');
+}
+
+// ─────────────────────────────────────────────────────── embed（可嵌入片段）
+
+/**
+ * 把整页 CSS 改写成 Shadow DOM 作用域：
+ *   :root             → :host             （变量落在宿主元素上）
+ *   :root[data-theme] → :host([data-theme])   ← 必须带括号，见下
+ *   :root:not(...)    → :host(:not(...))      ← 同上
+ *   html              → :host
+ * `body{...}` 故意**不改**——shadow 里没有 body，那几条（整页背景 / 内边距 / min-height）
+ * 自然失效，正好是嵌入时想要的效果。
+ *
+ * ⚠️ **`:host[attr]` 这种裸写法在 Chrome 里不匹配**（2026-10-02 实测，同页对照：
+ *  `:host[data-theme="dark"]{--x:bare}` 与 `:host([data-theme="dark"]){--y:fn}`
+ *  同时存在，取到的 `--x` 仍是浅色值、`--y` 才是深色值；两条规则都在 cssRules 里、
+ *  选择器文本也正常，只是不生效——静默失败）。**必须用函数式 `:host([attr])`。**
+ */
+function toShadowCss(css) {
+  return css
+    .replace(/:root(\[[^\]]*\]|:not\([^)]*\))/g, ':host($1)')   // 复合形式必须先于裸形式
+    .replace(/:root/g, ':host')
+    .replace(/(^|[\s,{}])html(?=[\s,{.:#\[])/g, '$1:host');
+}
+
+function cssEmbed() {
+  return toShadowCss(cssCard() + cssPopup()) + `
+:host{
+  display:block;position:fixed;inset:0;z-index:2147483000;pointer-events:none;
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--ink);
+}
+.pop,.lightbox{pointer-events:auto}`;
+}
+
+/**
+ * --mode embed：把 popup 形态打包成一个**自包含的 JS 片段**（零依赖）。
+ * 宿主页只出按钮，片段自己带弹层；语言与主题跟随宿主，不污染宿主样式（Shadow DOM）。
+ */
+function renderEmbed(opt, qrList, model) {
+  const data = JSON.stringify(model);
+  const icons = JSON.stringify(ICON);
+  const css = cssEmbed();
+
+  return `/*! sponsor-embed.js · iskill-generate-sponsors · ${model.generatedAt}
+ * ---------------------------------------------------------------------------
+ * 自包含赞助弹层（Shadow DOM · 零依赖）。由 iskill-generate-sponsors --mode embed 生成。
+ *
+ * 集成三步：
+ *   1. <script src="sponsor-embed.js" defer></script>
+ *   2. 任意元素加 data-sponsor-open 即可触发：<button data-sponsor-open>赞助</button>
+ *   3. 需要更细的控制就用 window.SponsorEmbed
+ *
+ * API：open() / close() / toggle() / setLang('zh'|'en') / setTheme('light'|'dark'|null)
+ *      getLang() / getTheme() / on('open'|'close', fn) / refresh() / element() / data
+ *
+ * 跟随宿主：
+ *   语言  data-lang 或 <html lang>（含 --sponsor-lang 属性覆盖，zh* → 中文，其余 → 英文）
+ *   主题  <html data-theme> 或 <html class="dark|light"> 或系统偏好（--sponsor-theme 覆盖）
+ *   宿主改语言/主题后片段会自动跟随；也可由宿主主动调 setLang / setTheme。
+ * 样式完全关在 Shadow DOM 里，宿主的 CSS 进不来、片段的 CSS 也出不去。
+ * ------------------------------------------------------------------------- */
+(function () {
+  'use strict';
+  if (window.SponsorEmbed && window.SponsorEmbed.version) return;
+
+  var MODEL = ${data};
+  var ICON  = ${icons};
+  var CSS   = ${JSON.stringify(css)};
+
+  var LANGS = (MODEL.langs && MODEL.langs.length) ? MODEL.langs : ['zh', 'en'];
+  var DEF   = LANGS.indexOf(MODEL.defaultLang) >= 0 ? MODEL.defaultLang : LANGS[0];
+
+  var state = { lang: null, theme: null };
+  var hostEl = null, sr = null, pop = null, lb = null, lbImg = null, lbCap = null;
+  var prevOverflow = '', handlers = {}, raf = 0;
+
+  /* ── 小工具 ── */
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function pick(v, lang) {
+    if (v == null) return '';
+    if (typeof v !== 'object' || Object.prototype.toString.call(v) === '[object Array]') return String(v);
+    if (v[lang] != null) return v[lang];
+    return v.zh != null ? v.zh : (v.en != null ? v.en : '');
+  }
+  function fill(tpl, x) { return String(tpl == null ? '{x}' : tpl).replace('{x}', x); }
+  function all(sel, fn) { if (sr) Array.prototype.forEach.call(sr.querySelectorAll(sel), fn); }
+  function validLang(l) { return LANGS.indexOf(l) >= 0 ? l : null; }
+  function normLang(s) {
+    s = String(s || '').toLowerCase();
+    if (s.indexOf('zh') === 0) return 'zh';
+    if (s.indexOf('en') === 0) return 'en';
+    return '';
+  }
+
+  /* ── 跟随宿主：语言 ── */
+  function resolveLang() {
+    var l = validLang(state.lang); if (l) return l;
+    l = hostEl && validLang(normLang(hostEl.getAttribute('data-sponsor-lang'))); if (l) return l;
+    var de = document.documentElement;
+    l = validLang(normLang(de.getAttribute('data-lang') || de.getAttribute('lang'))); if (l) return l;
+    try { l = validLang(normLang(navigator.language || navigator.userLanguage)); } catch (e) {}
+    return l || DEF;
+  }
+
+  /* ── 跟随宿主：主题 ── */
+  function resolveTheme() {
+    if (state.theme === 'light' || state.theme === 'dark') return state.theme;
+    var a = hostEl && hostEl.getAttribute('data-sponsor-theme');
+    if (a === 'light' || a === 'dark') return a;
+    var de = document.documentElement, d = de.getAttribute('data-theme');
+    if (d === 'light' || d === 'dark') return d;
+    if (de.classList) {
+      if (de.classList.contains('dark')) return 'dark';
+      if (de.classList.contains('light')) return 'light';
+    }
+    try { if (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'; } catch (e) {}
+    return 'light';
+  }
+
+  /* ── 标记（与 sponsors.html 的 popup 形态同源） ── */
+  function markup(lang) {
+    var t = MODEL.ui[lang] || MODEL.ui.zh;
+    var cards = MODEL.qr.map(function (q, i) {
+      var label = pick(q.label, lang);
+      return '<figure class="card" data-i="' + i + '" style="--accent:' + esc(q.accent) + '">'
+        + '<div class="card-head"><span class="chip">' + ICON.qr
+        + '<span data-slot="chip">' + esc(label) + '</span></span></div>'
+        + '<button class="qr" type="button" data-label="' + esc(label) + '" aria-label="' + esc(fill(t.zoomOf, label)) + '">'
+        + '<img src="' + esc(q.src) + '" alt="' + esc(fill(t.altOf, label)) + '" decoding="async">'
+        + '<span class="zoom">' + ICON.expand + '</span></button></figure>';
+    }).join('');
+    var links = MODEL.links.length
+      ? MODEL.links.map(function (l) {
+          return '<a class="link" style="--accent:' + esc(l.accent) + '" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">'
+            + '<div class="card-head"><span class="chip">' + ICON.link + '<span>' + esc(l.label) + '</span></span></div>'
+            + '<span class="link-body"><span class="link-name">' + esc(l.label) + '</span>'
+            + '<span class="link-sub">' + esc(l.sub) + '</span></span></a>';
+        }).join('')
+      : '<p class="empty">' + t.empty + '</p>';
+    var note = pick(MODEL.note, lang);
+    var one = function (slot, txt, tag) {
+      return '<' + (tag || 'h1') + ' data-slot="' + slot + '">' + esc(txt) + '</' + (tag || 'h1') + '>';
+    };
+    return '<div class="pop" hidden role="dialog" aria-modal="true" aria-label="' + esc(t.badge) + '">'
+      + '<div class="pop-card">'
+      + '<button class="pop-close" type="button" aria-label="' + esc(t.popCloseAria) + '">\u00d7</button>'
+      + '<header class="hero pop-head">'
+      + '<span class="badge">' + ICON.heart + '<span data-slot="badge">' + esc(t.badge) + '</span></span>'
+      + one('title', pick(MODEL.title, lang))
+      + '</header>'
+      + '<section class="qrs">' + cards + links + '</section>'
+      + (note ? '<p class="note" data-slot="note">' + esc(note) + '</p>' : '')
+      + '</div></div>'
+      + '<div class="lightbox" hidden>'
+      + '<button class="lb-close" type="button" aria-label="' + esc(t.closeAria) + '">\u00d7</button>'
+      + '<img alt=""><p class="lb-cap"></p></div>';
+  }
+
+  /* ── 骨架（懒建：第一次 open() 才挂到页面） ── */
+  function ensure() {
+    if (hostEl || !document.body) return;
+    hostEl = document.createElement('div');
+    hostEl.setAttribute('data-sponsor-embed', '');
+    hostEl.setAttribute('data-lang', resolveLang());
+    hostEl.setAttribute('data-theme', resolveTheme());
+    document.body.appendChild(hostEl);
+    try { sr = hostEl.attachShadow({ mode: 'open' }); }
+    catch (e) { sr = hostEl; }        // 无 Shadow DOM 的环境退化为普通容器（样式仍有九成可用）
+    sr.innerHTML = '<style>' + CSS + '</style>' + markup(hostEl.getAttribute('data-lang'));
+    pop = sr.querySelector ? sr.querySelector('.pop') : null;
+    lb = sr.querySelector ? sr.querySelector('.lightbox') : null;
+    if (lb) { lbImg = lb.querySelector('img'); lbCap = lb.querySelector('.lb-cap'); }
+    bind();
+  }
+
+  function bind() {
+    if (!pop) return;
+    pop.addEventListener('click', function (e) {
+      if (e.target === pop) { close(); return; }
+      if (e.target && e.target.closest && e.target.closest('.pop-close')) close();
+    });
+    all('.qr', function (b) {
+      b.addEventListener('click', function () {
+        var im = b.querySelector('img');
+        if (!im || !lb) return;
+        lbImg.src = im.currentSrc || im.src;
+        lbImg.alt = im.alt;
+        lbCap.textContent = b.getAttribute('data-label') || '';
+        lb.hidden = false;
+      });
+    });
+    if (lb) lb.addEventListener('click', function (e) {
+      var hit = e.target === lb || e.target === lbImg
+        || (e.target && e.target.closest && e.target.closest('.lb-close'));
+      if (hit) { lb.hidden = true; lbImg.src = ''; }
+    });
+    document.addEventListener('keydown', onKey);
+  }
+
+  function onKey(e) {
+    if (e.key !== 'Escape') return;
+    if (lb && !lb.hidden) { lb.hidden = true; lbImg.src = ''; return; }   // ESC：先关灯箱
+    if (pop && !pop.hidden) close();
+  }
+
+  /* ── 渲染 ── */
+  function render(lang) {
+    if (!hostEl) return;
+    var t = MODEL.ui[lang] || MODEL.ui.zh;
+    hostEl.setAttribute('data-lang', lang);
+    all('[data-slot="title"]', function (e) { e.textContent = pick(MODEL.title, lang); });
+    all('[data-slot="badge"]', function (e) { e.textContent = t.badge; });
+    all('[data-slot="note"]', function (e) { e.textContent = pick(MODEL.note, lang); });
+    all('.empty', function (e) { e.innerHTML = t.empty; });
+    all('.pop-close', function (e) { e.setAttribute('aria-label', t.popCloseAria); });
+    all('.lb-close', function (e) { e.setAttribute('aria-label', t.closeAria); });
+    if (pop) pop.setAttribute('aria-label', t.badge);
+    all('.card[data-i]', function (c) {
+      var q = MODEL.qr[Number(c.getAttribute('data-i'))];
+      if (!q) return;
+      var label = pick(q.label, lang);
+      var chip = c.querySelector('[data-slot="chip"]');
+      if (chip) chip.textContent = label;
+      var im = c.querySelector('img');
+      if (im) im.alt = fill(t.altOf, label);
+      var b = c.querySelector('.qr');
+      if (b) { b.setAttribute('data-label', label); b.setAttribute('aria-label', fill(t.zoomOf, label)); }
+    });
+  }
+
+  function sync() {
+    if (!hostEl) return;
+    var th = resolveTheme();
+    if (hostEl.getAttribute('data-theme') !== th) hostEl.setAttribute('data-theme', th);
+    var lg = resolveLang();
+    if (hostEl.getAttribute('data-lang') !== lg) render(lg);
+  }
+
+  /* ── 开 / 关 ── */
+  function open() {
+    ensure();
+    if (!pop) return;
+    sync();
+    if (!pop.hidden) return;
+    prevOverflow = document.body ? document.body.style.overflow : '';
+    if (document.body) document.body.style.overflow = 'hidden';
+    pop.hidden = false;
+    emit('open');
+    var f = sr.querySelector('.pop-close');
+    if (f && f.focus) { try { f.focus(); } catch (e) {} }
+  }
+
+  function close() {
+    var wasOpen = !!(pop && !pop.hidden);
+    if (lb && !lb.hidden) { lb.hidden = true; lbImg.src = ''; }
+    if (wasOpen) { pop.hidden = true; emit('close'); }
+    if (document.body) document.body.style.overflow = prevOverflow;
+  }
+
+  function emit(name) {
+    var list = handlers[name];
+    if (!list) return;
+    for (var i = 0; i < list.length; i++) { try { list[i](); } catch (e) {} }
+  }
+
+  /* ── 触发点：任何 [data-sponsor-open] 都能打开（宿主自己出按钮，样式自带） ── */
+  function bindTriggers(scope) {
+    var list = (scope || document).querySelectorAll('[data-sponsor-open]');
+    Array.prototype.forEach.call(list, function (el) {
+      if (el.__sponsorEmbed) return;
+      el.__sponsorEmbed = 1;
+      el.addEventListener('click', function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        open();
+      });
+      if (!el.hasAttribute('aria-haspopup')) el.setAttribute('aria-haspopup', 'dialog');
+    });
+  }
+
+  /* ── 监听宿主变化：改语言/主题自动跟随；新增的触发点自动绑定 ── */
+  function watch() {
+    if (!window.MutationObserver) return;
+    try {
+      new MutationObserver(sync).observe(document.documentElement, {
+        attributes: true, attributeFilter: ['class', 'lang', 'data-theme', 'data-lang']
+      });
+    } catch (e) {}
+    if (!document.body) return;
+    try {
+      new MutationObserver(function () {
+        if (raf) return;
+        raf = (window.requestAnimationFrame || function (fn) { return setTimeout(fn, 16); })(function () {
+          raf = 0;
+          bindTriggers();
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+    } catch (e) {}
+  }
+
+  /* ── 对外 API ── */
+  var api = {
+    version: '1.0.0',
+    generator: MODEL.generator,
+    data: MODEL,
+    open: open,
+    close: close,
+    toggle: function () { if (pop && !pop.hidden) close(); else open(); },
+    setLang: function (l) { state.lang = validLang(l); if (hostEl) sync(); return state.lang || resolveLang(); },
+    setTheme: function (t) {
+      state.theme = (t === 'light' || t === 'dark') ? t : null;
+      if (hostEl) sync();
+      return state.theme || resolveTheme();
+    },
+    getLang: function () { return hostEl ? hostEl.getAttribute('data-lang') : resolveLang(); },
+    getTheme: function () { return hostEl ? hostEl.getAttribute('data-theme') : resolveTheme(); },
+    on: function (name, fn) { (handlers[name] = handlers[name] || []).push(fn); return api; },
+    refresh: function () { ensure(); bindTriggers(); sync(); return api; },
+    element: function () { return hostEl; }
+  };
+  window.SponsorEmbed = api;
+
+  function boot() { bindTriggers(); watch(); sync(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+`;
 }
 
 function cssCard() {
@@ -975,21 +1343,55 @@ body{
   :root:not([data-theme="light"]) .icon-btn .ic-moon{display:block}
 }
 
-/* ── 响应式：窄屏收边距、卡片变紧凑、副标题不再挤压 ── */
+/* ── 响应式：单列时卡片通栏，只留**左右各 40px** 边距；卡片与内容同步放大 ──
+   原来卡片写死 200px，390 屏下左右各空出约 95px —— 码被挤小、两边一大片白
+   （2026-10-02 用户反馈）。现在 body 左右 40px + 卡片 width:100%，
+   于是卡片宽度 = 视口 − 80（390 屏 → 310px），内边距/字号/圆角一起加上去。 */
 @media (max-width:520px){
-  body{padding:22px 12px 38px}
+  body{padding:22px 40px 38px}
   .hero{margin-bottom:16px}
-  .card{padding:9px;border-radius:12px}
-  .link{padding:7px 10px}
+  .qrs{gap:12px}
+  .card,.link{width:100%}
+  .card{padding:12px;border-radius:14px;gap:9px}
+  .chip{font-size:12.5px;padding:4px 11px}
+  .chip svg{width:13px;height:13px}
+  .hint{font-size:11.5px}
+  .qr{padding:10px;border-radius:12px}
+  .qr img{border-radius:7px}
+  .link{padding:12px;border-radius:14px;gap:9px}
+  .link-body{min-height:0;aspect-ratio:6/5;border-radius:12px}
+  .link-name{font-size:17px}
+  .link-sub{font-size:12.5px}
   .lightbox{padding:20px}
   .lb-close{top:14px;right:16px}
 }`;
 }
 
-/* 弹层模式（--mode popup）专属样式，inline 模式不携带 */
+/**
+ * 弹层（页面第二段的弹出层 / embed 片段共用）。
+ * 页面形态固定后它**恒定注入**（不再有「popup 档才携带」这回事）。
+ *
+ * 版式目标：**三种赞助方式在桌面端排成一行**（默认就是 2 张码 + 1 个 PayPal 这类形状）。
+ * 原始版是 `width:min(560px,94vw)` + 卡片写死 200px —— 内宽只剩 516px，
+ * 3×200+24=624 塞不下 → 永远折成 2+1，两侧还留一大片空（2026-10-02 用户反馈）。
+ *
+ * 现在的做法：
+ *   ① 弹层放宽到 700px、左右内边距 22→18（把两侧那片空白给卡片）；
+ *   ② 卡片改成**弹性**——`flex:1 1 150px; max-width:200px`，先挤到 150px，挤不动才换行。
+ * 于是 3 张在视口 ≥ 561px 时稳居一行 —— 而 ≤560px 正好是下面的手机档，
+ * 所以**中间不存在「2+1」夹缝**：要么一行三个，要么一行一个，二选一。
+ * （168px 做下限时会在 600–561px 之间卡出一段 2+1，2026-10-02 实测并消掉。）
+ * `width:min(700px,100%)` 的 `100%` 指 `.pop` 的 content box（视口 − 44），
+ * 所以窄屏不会像 `94vw` 那样溢出（94vw + 44px padding 在 <733px 时是溢出的）。
+ *
+ * 验收数据（agent-browser 扫 19 档视口，判据 = `.qrs` 子元素的不同 top 个数）：
+ *   1180→561px：一行三个（卡片 200→152px）；≤560px：一行一个
+ *   （卡片通栏 = 视口 − 80，即距屏幕左右各 40px，与首屏单列卡片同一口径）。
+ *   ⚠️ 扫的时候 URL 必须带查询串破缓存 —— file:// 也会被 Chromium 缓存，
+ *      改完 CSS 直接重开还会读到旧规则（实测踩过：同一份 CSS 里读回 168px）。
+ */
 function cssPopup() {
   return `
-.pop-host{min-height:72vh;display:flex;align-items:center;justify-content:center}
 .sponsor-btn{
   display:inline-flex;align-items:center;gap:8px;
   padding:11px 22px;border-radius:999px;cursor:pointer;
@@ -1010,9 +1412,9 @@ function cssPopup() {
 }
 .pop[hidden]{display:none}
 .pop-card{
-  position:relative;width:min(560px,94vw);max-height:86vh;overflow:auto;
+  position:relative;width:min(700px,100%);max-height:86vh;overflow:auto;
   background:var(--card);border:1px solid var(--line);border-radius:20px;
-  box-shadow:var(--shadow-hi);padding:22px 22px 18px;
+  box-shadow:var(--shadow-hi);padding:22px 18px 18px;
 }
 .pop-head{margin-bottom:16px}
 .pop-head h1{font-size:19px;margin:12px 0 0}
@@ -1023,7 +1425,42 @@ function cssPopup() {
 }
 .pop-close:hover{color:var(--ink)}
 .pop-card .note{margin-top:14px}
-.pop-card .qrs{gap:12px}`;
+.pop-card .qrs{gap:12px}
+/* 弹性卡片：先挤到 150px，挤不动才换行 —— 桌面端（≥561px）三种方式恒在一行 */
+.pop-card .qrs > .card,
+.pop-card .qrs > .link{width:auto;flex:1 1 150px;max-width:200px}
+/* 手机：一行一个，卡片同步放大到「距屏幕左右各 40px」——
+   24（.pop 内边距）+ 16（.pop-card 内边距）= 40，与首屏单列卡片对齐；
+   卡片内容（内边距 / chip / 码面圆角）跟着一起放大。 */
+@media (max-width:560px){
+  .pop{padding:24px}
+  .pop-card{padding:20px 16px 18px;border-radius:18px}
+  .pop-card .qrs{gap:14px}
+  .pop-card .qrs > .card,
+  .pop-card .qrs > .link{flex-basis:100%;max-width:none}
+  .pop-card .card,
+  .pop-card .link{padding:12px;border-radius:14px;gap:9px}
+  .pop-card .chip{font-size:12.5px;padding:4px 11px}
+  .pop-card .chip svg{width:13px;height:13px}
+  .pop-card .qr{padding:10px;border-radius:12px}
+  .pop-card .qr img{border-radius:7px}
+  .pop-card .link-body{min-height:0;aspect-ratio:6/5;border-radius:12px}
+  .pop-card .link-name{font-size:17px}
+  .pop-card .link-sub{font-size:12.5px}
+}`;
+}
+
+/**
+ * 第二段（弹层入口）的版式。页面形态固定后它**恒定存在**，不再是「demo 档专属」。
+ * 刻意做得比首屏轻：虚线分隔 + 小标题 + 一句说明 + 一个按钮 ——
+ * 让访客一眼看出「这里还能点开」，又不抢首屏卡片的位置。
+ */
+function cssPopEntry() {
+  return `
+.pop-entry{margin:26px auto 0;padding-top:22px;border-top:1px dashed var(--line);text-align:center}
+.pop-entry h2{margin:0 0 6px;font-size:13.5px;font-weight:700;letter-spacing:.02em}
+.pop-entry p{margin:0 auto 16px;max-width:44ch;font-size:12.5px;line-height:1.7;color:var(--ink2)}
+`;
 }
 
 function cssMinimal() {
@@ -1141,9 +1578,42 @@ function injectReadme(opt, block) {
 
 // ───────────────────────────────────────────────────────────── main
 
+/** --mode embed 的收尾：写片段 + 打印接入说明（图片已在 main 前半段落盘） */
+function finishEmbed(opt, qrList, model, destDir, pagesDir) {
+  const file = path.resolve(opt.out, opt.embedOut);
+  const code = renderEmbed(opt, qrList, model);
+  const rel = p => path.relative(opt.out, p) || '.';
+  const kb = n => (n / 1024).toFixed(1) + ' KB';
+
+  if (opt.dryRun) {
+    console.log('— dry-run（--mode embed）—');
+    for (const q of qrList) console.log('  图片 →', rel(path.join(destDir, q.destName)));
+    console.log('  片段 →', rel(file), `(${kb(Buffer.byteLength(code))})`);
+    return;
+  }
+
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, code);
+
+  console.log('\n  iskill-generate-sponsors · embed\n' + '  ' + '─'.repeat(44));
+  for (const q of qrList) {
+    console.log(`  ✓ ${q.label.padEnd(8)} ${rel(path.join(destDir, q.destName))}  （脚本引用 ${opt.pagesImgBase}/${q.destName}）`);
+  }
+  console.log(`  ✓ 可嵌入片段          ${rel(file)}  (${kb(Buffer.byteLength(code))})`);
+  console.log(`  ${'─'.repeat(44)}`);
+  console.log('  接入三步：');
+  console.log(`    1. <script src="${rel(file)}" defer></script>`);
+  console.log('    2. <button data-sponsor-open>赞助</button>          <!-- 按钮样式由宿主自己定 -->');
+  console.log('    3. 需要精细控制时用 window.SponsorEmbed.open() / setLang() / setTheme()');
+  console.log(`  提示：图片走 ${opt.pagesImgBase}/，宿主页与它同级即可；想彻底单文件加 --standalone。\n`);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) { usage(); return; }
+  if (args.mode && LEGACY_MODES[String(args.mode).toLowerCase()]) {
+    console.log(`注：--mode ${args.mode} 已并入默认页面形态（页面固定「整页卡片 + 弹层入口」两段），按默认处理。\n`);
+  }
 
   const opt = buildOptions(args);
   const qrList = resolveQrList(opt);
@@ -1180,7 +1650,7 @@ function main() {
   for (const q of qrList) q.mdWidth = width;
 
   // 三种产物共用同一份 src：--standalone 时是 base64，否则是相对路径
-  // html 链路（含被 index.html iframe 的场景）走 pagesImgBase —— Pages 上 .github/ 不可达
+  // html 链路（含被 usage.html iframe 的场景）走 pagesImgBase —— Pages 上 .github/ 不可达
   for (const q of qrList) {
     q.cSrc = opt.standalone
       ? dataUri(path.join(destDir, q.destName), q.destName.endsWith('.png') ? 'image/png' : 'image/jpeg')
@@ -1189,6 +1659,9 @@ function main() {
 
   // 一份数据喂三种产物 —— HTML / React / Vue 必须严格同源，否则样本会对不上
   const model = buildModel(opt, qrList, renderLinks(opt));
+
+  // --mode embed：只产出「可嵌进任意页面的自包含片段」+ 图片，不写页面/README/FUNDING
+  if (opt.mode === 'embed') return finishEmbed(opt, qrList, model, destDir, pagesDir);
 
   const funding = renderFundingYml(opt, qrList);
   const mdBlock = renderMarkdown(opt, qrList);
@@ -1214,7 +1687,7 @@ function main() {
     console.log('图片 →', destDir + '/' + qrList.map(q => q.destName).join(', '));
     console.log('FUNDING.yml / SPONSORS.md / sponsors.html →', opt.out);
     if (!opt.noComponents) console.log('SponsorCard.jsx / SponsorCard.vue →', opt.componentsDir);
-    if (sourceHtml) console.log('index.html →', opt.out);
+    if (sourceHtml) console.log('usage.html →', opt.out);
     console.log('README:', injectReadme(opt, mdBlock).action);
     return;
   }
@@ -1223,7 +1696,7 @@ function main() {
   fs.writeFileSync(path.join(opt.out, '.github', 'FUNDING.yml'), funding);
   fs.writeFileSync(path.join(opt.out, 'SPONSORS.md'), sponsorsMd);
   fs.writeFileSync(path.join(opt.out, 'sponsors.html'), html);
-  if (sourceHtml) fs.writeFileSync(path.join(opt.out, 'index.html'), sourceHtml);
+  if (sourceHtml) fs.writeFileSync(path.join(opt.out, 'usage.html'), sourceHtml);
 
   const jsxFile = path.join(opt.componentsDir, 'SponsorCard.jsx');
   const vueFile = path.join(opt.componentsDir, 'SponsorCard.vue');
@@ -1244,7 +1717,7 @@ function main() {
   console.log(`  ✓ FUNDING.yml        ${rel(path.join(opt.out, '.github', 'FUNDING.yml'))}`);
   console.log(`  ✓ SPONSORS.md        ${rel(path.join(opt.out, 'SPONSORS.md'))}`);
   console.log(`  ✓ sponsors.html      ${rel(path.join(opt.out, 'sponsors.html'))}  (${kb(Buffer.byteLength(html))}${opt.standalone ? '，含内嵌图片' : ''})`);
-  if (sourceHtml) console.log(`  ✓ 源码复制页         ${rel(path.join(opt.out, 'index.html'))}  (${sourceArtifacts.length} 个产物一键复制)`);
+  if (sourceHtml) console.log(`  ✓ 源码复制/用法页    ${rel(path.join(opt.out, 'usage.html'))}  (${sourceArtifacts.length} 个产物一键复制)`);
   if (react) {
     console.log(`  ✓ SponsorCard.jsx    ${rel(jsxFile)}  (${kb(Buffer.byteLength(react))})`);
     console.log(`  ✓ SponsorCard.vue    ${rel(vueFile)}  (${kb(Buffer.byteLength(vue))})`);

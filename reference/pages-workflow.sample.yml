@@ -23,7 +23,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'index.html'
+      - 'usage.html'
       - 'sponsors.html'
       - 'sponsor/**'
       - '.github/workflows/pages.yml'
@@ -50,7 +50,7 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site
-          cp index.html sponsors.html _site/
+          cp usage.html sponsors.html _site/
           cp -r sponsor _site/sponsor
 
       - uses: actions/configure-pages@v5

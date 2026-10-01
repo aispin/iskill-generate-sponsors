@@ -25,6 +25,10 @@ export const UI = {
     closeAria: '关闭放大图',
     popAria: '打开赞助弹窗',
     popCloseAria: '关闭赞助弹窗',
+    // 第二段（弹层入口）的文案 —— 页面固定两段式，这段是**访客口吻**，
+    // 不出现命令行 / 形态名：这页同时是用户直接部署的赞助页，不是说明书。
+    popSecTitle: '也可以点开看',
+    popSecHint: '点下面的按钮，全部赞助方式会在弹层里重新排一遍。',
     langShort: 'EN',   // 当前为中文时，按钮上显示的「切到另一种语言」短标
     empty: '还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字</code> 再来一次。',
   },
@@ -39,6 +43,8 @@ export const UI = {
     closeAria: 'Close',
     popAria: 'Open sponsor popup',
     popCloseAria: 'Close sponsor popup',
+    popSecTitle: 'Prefer a popup?',
+    popSecHint: 'Tap the button below to see every option in a focused overlay.',
     langShort: '中',
     empty: 'No external sponsor links yet. Add one with <code>--paypal https://paypal.me/yourname</code>, then re-run.',
   },
@@ -69,7 +75,11 @@ export function buildModel(opt, qrList, links) {
     : ['zh', 'en'];
   if (!langs.length) langs.push('zh');
 
-  const date = new Date().toISOString().slice(0, 10);
+  // 本地日期。⚠️ 别用 toISOString() —— 那是 UTC，东八区 0–8 点会退回前一天，
+  // 页脚日期会「少一天」（2026-10-02 实锤：凌晨生成显示 10-01）。
+  const now = new Date();
+  const p2 = n => String(n).padStart(2, '0');
+  const date = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}`;
   const a = `<a href="${GEN_URL}" target="_blank" rel="noopener noreferrer">iskill-generate-sponsors</a>`;
 
   return {
