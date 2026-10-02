@@ -73,12 +73,16 @@ window.PROMO = {
         meta2: "本地运行",
         meta3: "MIT 许可"
       },
-      terminal: {
-        title: "zsh — iskill-generate-sponsors",
-        lines: [
-          [{ t: "$ ", c: "p" }, { t: "node scripts/gen-sponsors.mjs --qr 支付宝=a.jpg", c: "k" }],
-          [{ t: "    ", c: "s" }, { t: "--qr 微信=b.jpg --paypal paypal.me/you", c: "k" }],
-          [{ t: "✓ ", c: "p" }, { t: "赞助页 + FUNDING.yml + README 区块 + 组件 就绪", c: "s" }]
+      chat: {
+        title: "AI Agent · 对话现场",
+        status: "在线",
+        userLabel: "你",
+        agentLabel: "AI",
+        messages: [
+          { role: "user", text: "帮我把微信 / 支付宝收款码变成一套赞助入口" },
+          { role: "agent", text: "把两张码图给我 —— 我跑 gen-sponsors：赞助页 + FUNDING.yml + README 区块 + React/Vue 组件 + usage 页，一次出齐。", tag: "已生成 5 个产物" },
+          { role: "user", text: "README 区块直接给我？" },
+          { role: "agent", text: "给你可复制的 Markdown 片段，二维码自动裁边压缩，排版紧凑低调，贴哪都行。" }
         ]
       },
 
@@ -190,12 +194,16 @@ window.PROMO = {
         meta2: "Runs locally",
         meta3: "MIT licensed"
       },
-      terminal: {
-        title: "zsh — iskill-generate-sponsors",
-        lines: [
-          [{ t: "$ ", c: "p" }, { t: "node scripts/gen-sponsors.mjs --qr alipay=a.jpg", c: "k" }],
-          [{ t: "    ", c: "s" }, { t: "--qr wechat=b.jpg --paypal paypal.me/you", c: "k" }],
-          [{ t: "✓ ", c: "p" }, { t: "sponsor page + FUNDING.yml + README + components", c: "s" }]
+      chat: {
+        title: "AI Agent · live session",
+        status: "online",
+        userLabel: "You",
+        agentLabel: "AI",
+        messages: [
+          { role: "user", text: "Turn my WeChat / Alipay QR codes into a sponsor setup" },
+          { role: "agent", text: "Hand me the two images — I'll run gen-sponsors: sponsor page + FUNDING.yml + README block + React/Vue components + usage page, all at once.", tag: "5 artifacts generated" },
+          { role: "user", text: "Give me the README block directly?" },
+          { role: "agent", text: "Here's the copy-ready Markdown. QR codes are auto-cropped and compressed, tight and understated layout, paste anywhere." }
         ]
       },
 
