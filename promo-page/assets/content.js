@@ -144,16 +144,16 @@ window.PROMO = {
         items: [
           { title: "交给 AI 装", desc: "把这句话粘进对话框，agent 会自己拉代码、读文档，再告诉你用法。", codeKey: "install" },
           {
-            title: "跑一条命令",
-            desc: "把收款码图片丢进去，其余交给它。",
-            codeName: "bash",
-            code: "node scripts/gen-sponsors.mjs \\\n  --qr 支付宝=alipay.jpg --qr 微信=wechat.jpg \\\n  --paypal https://paypal.me/you"
+            title: "说一句你要什么",
+            desc: "自然语言描述需求就行 —— agent 自己读文档、跑命令，你不用碰终端。",
+            codeName: "prompt",
+            code: "我有两张收款码：alipay.jpg 和 wechat.jpg，\nPayPal 链接是 https://paypal.me/you ——\n帮我生成一整套赞助入口（FUNDING.yml + README 区块 + 赞助页）。"
           },
           {
-            title: "嵌进已有页面（可选）",
-            desc: "已经有站点、只想要个赞助按钮？只取片段，两行就够。",
-            codeName: "html",
-            code: "<script src=\"sponsor-embed.js\" defer><\/script>\n<button data-sponsor-open>♡ 赞助</button>"
+            title: "验收产物",
+            desc: "打开生成的 sponsors.html 过一眼排版；README 区块粘进仓库主页，FUNDING.yml 放进 .github/，Sponsor 按钮就位。",
+            codeName: "text",
+            code: "sponsors.html        ← 浏览器打开看排版\n.github/FUNDING.yml  ← Sponsor 按钮亮起\nREADME.md            ← 赞助区块已就位"
           }
         ]
       },
@@ -265,16 +265,16 @@ window.PROMO = {
         items: [
           { title: "Let your agent install it", desc: "Paste the line into the chat — it clones the repo, reads the docs, and tells you how to use it.", codeKey: "install" },
           {
-            title: "Run one command",
-            desc: "Point it at your QR images; it handles the rest.",
-            codeName: "bash",
-            code: "node scripts/gen-sponsors.mjs \\\n  --qr alipay=alipay.jpg --qr wechat=wechat.jpg \\\n  --paypal https://paypal.me/you"
+            title: "Say what you want",
+            desc: "Plain words are enough — the agent reads the docs and runs the commands; you never touch a terminal.",
+            codeName: "prompt",
+            code: "I have two QR images: alipay.jpg and wechat.jpg,\nPayPal link https://paypal.me/you —\ngive me the full sponsor setup (FUNDING.yml + README block + sponsor page)."
           },
           {
-            title: "Embed it anywhere (optional)",
-            desc: "Already have a site and just want a sponsor button? Take the widget — two lines.",
-            codeName: "html",
-            code: "<script src=\"sponsor-embed.js\" defer><\/script>\n<button data-sponsor-open>♡ Sponsor</button>"
+            title: "Check the artifacts",
+            desc: "Open the generated sponsors.html to eyeball the layout; paste the README block into your repo, drop FUNDING.yml into .github/ — the Sponsor button lights up.",
+            codeName: "text",
+            code: "sponsors.html        ← open in a browser\n.github/FUNDING.yml  ← Sponsor button goes live\nREADME.md            ← sponsor block in place"
           }
         ]
       },
