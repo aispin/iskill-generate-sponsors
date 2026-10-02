@@ -244,13 +244,13 @@ node scripts/gen-sponsors.mjs --config sponsors.config.json \
 `body{...}` 则**故意不替换**——shadow 里没有 `body`，那几条整页背景 / 内边距自然失效，
 正好是嵌入时想要的效果。
 
-## 本仓库的落地页（根目录的 `index.html`）
+## 本仓库的落地页（`promo-page/` 目录）
 
-仓库根上那个 `index.html` **不是本技能的产物**，而是用兄弟技能 `iskill-promo-page`
-生成的落地页（GitHub Pages 的首页）。它和本技能只有一处耦合：
+仓库 `promo-page/` 目录里那个 `index.html` **不是本技能的产物**，而是用兄弟技能 `iskill-promo-page`
+生成的落地页（GitHub Pages 的首页，经 `gh-pages` 分支发布）。它和本技能只有一处耦合：
 
 ```js
-// 落地页 assets/content.js
+// 落地页 promo-page/assets/content.js
 slots: { hero: { iframe: { src: "usage.html", height: 760 } } }
 ```
 
@@ -259,11 +259,11 @@ slots: { hero: { iframe: { src: "usage.html", height: 760 } } }
 
 | 要点 | 说明 |
 |---|---|
-| 为什么在根目录 | 落地页、`usage.html`、`sponsors.html` 必须同目录；分开后 iframe 的相对路径会在单独发布站点时断 |
+| 为什么进 `promo-page/` | 落地页、`usage.html`、`sponsors.html` 必须同目录（都待在 `promo-page/` 内，发布到 gh-pages 根后仍同目录）；分开后 iframe 的相对路径会在单独发布站点时断 |
 | 主题 / 语言跟随 | 槽位首帧把 `#lang=&theme=` 写进 iframe 的 `src`（hash 在子页头脚本里最先读到，无竞态）；之后切换走 `postMessage`，**不重载** iframe，所以不会丢用户已切到的 tab |
-| 初始化 / 重生成 | `node <promo-page>/scripts/init.mjs --target . --out .`（`--out .` = 逐文件铺进根，同名默认跳过，不会覆盖已有文件） |
+| 初始化 / 重生成 | `node <promo-page>/scripts/init.mjs --target .`（生成骨架到 `promo-page/`），再 `bash <promo-page>/scripts/deploy.sh . --set-pages` 推 `gh-pages` 并翻 Pages 源 |
 | 被嵌时自动收起自己的控件 | `usage.html` 头脚本判定 `window.self !== window.top`，给 `<html>` 打 `data-embedded`，CSS 借此藏掉它自带的 `中/EN` 与主题按钮 —— 否则和宿主顶栏的两个开关上下重复，看着像两张页面叠在一起。单独打开时控件照常在（三条断言见「验收」） |
-| 页面本身怎么改 | 只改落地页的 `assets/content.js`（品牌色 / 文案）与它 `index.html` 顶部 8 行 meta，见 promo-page 的 SKILL.md |
+| 页面本身怎么改 | 只改落地页的 `promo-page/assets/content.js`（品牌色 / 文案）与它 `promo-page/index.html` 顶部 8 行 meta，见 promo-page 的 SKILL.md |
 
 > 槽位是**通用机制**，不止本技能在用：骨架里加一行
 > `<div class="slot" data-slot="名字"></div>`，`content.js` 的 `slots` 里配同名键即可，
@@ -310,9 +310,9 @@ Bradley 自适应二值化（积分图）→ 行列双向扫 1:1:3:1:1 finder �
 README 区块保持 `.github/sponsor/`（GitHub 仓库内渲染不受影响）。
 `--pages-img-base` 可改镜像目录；显式设成与 `--img-base` 相同可关闭镜像。
 
-在线预览发布（本项目实测可用）：Settings → Pages → **Deploy from a branch** → `main` / `(root)`，
-或 `gh api repos/<owner>/<repo>/pages -X POST -f 'source[branch]=main' -f 'source[path]=/'`。
-gh-pages 分支那套还在但不是必须——任何分支都行，本项目直接用 main。
+在线预览发布（本项目实测可用）：`bash <promo-page>/scripts/deploy.sh . --set-pages` 一键把 `promo-page/` 推到 `gh-pages` 分支并翻 Pages 源；
+或手动 Settings → Pages → **Deploy from a branch** → `gh-pages` / `(root)`。
+本项目已统一走 `gh-pages` 分支（2026-10-02 由 main 根部署迁移），与 25 个 iskill 仓一致。
 Actions 方式（需 token 有 `workflow` scope）见 [`reference/pages-workflow.sample.yml`](reference/pages-workflow.sample.yml)。
 
 **⚠️ 分支模式的目录只能选 `/`（根）或 `/docs`**，官方原话是
