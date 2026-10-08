@@ -145,8 +145,8 @@ ${root} .sp-link::before{
 ${root} .sp-link:hover{transform:translateY(-2px);box-shadow:0 4px 14px -8px rgba(16,32,56,.28)}
 ${root} .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset:2px}
 ${root} .sp-link ${d('.sp-link-body')}{
-  flex:1;min-height:140px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  flex:1;min-height:0;
+  display:flex;align-items:center;gap:9px;
   /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
   background:
     radial-gradient(130px 95px at 84% -12%, color-mix(in srgb, var(--sp-accent) 15%, transparent), transparent 70%),
@@ -156,10 +156,13 @@ ${root} .sp-link ${d('.sp-link-body')}{
       transparent 1.5px 13px),
     var(--sp-qr-bg);
   border:1px solid var(--sp-qr-line);border-radius:8px;
-  padding:6px;text-align:center;
+  padding:7px;text-align:left;
   /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
   color:#0f1b2d;
 }
+/* 内嵌二维码 tile：白底独立描边，直接可扫；整卡是 <a>，点它即新窗口跳转 */
+${root} .sp-link ${d('.sp-link-qr')}{flex:none;width:56px;height:56px;padding:3px;background:#fff;border:1px solid var(--sp-qr-line);border-radius:7px}
+${root} .sp-link ${d('.sp-link-text')}{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
 ${root} .sp-link-name{font-weight:650;font-size:14px}
 ${root} .sp-link-sub{font-size:11px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ${root} .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}

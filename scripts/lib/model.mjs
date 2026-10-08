@@ -99,6 +99,6 @@ export function buildModel(opt, qrList, links) {
       label: { zh: q.label, en: q.labelEn || q.label },
       tip:   { zh: q.tip,   en: q.tipEn   || q.tip },
     })),
-    links: links.map(l => ({ label: l.label, sub: l.sub, url: l.url, accent: l.accent })),
+    links: links.map(l => ({ label: l.label, sub: l.sub, url: l.url, accent: l.accent, qr: l.qr || null })),
   };
 }

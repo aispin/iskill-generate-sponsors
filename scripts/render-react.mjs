@@ -201,8 +201,11 @@ export default function SponsorCard({
               <span className="sp-chip"><Icon.Link /><span>{l.label}</span></span>
             </div>
             <span className="sp-link-body">
-              <span className="sp-link-name">{l.label}</span>
-              <span className="sp-link-sub">{l.sub}</span>
+              {l.qr ? <img className="sp-link-qr" src={l.qr} alt="" width="56" height="56" loading="lazy" decoding="async" /> : null}
+              <span className="sp-link-text">
+                <span className="sp-link-name">{l.label}</span>
+                <span className="sp-link-sub">{l.sub}</span>
+              </span>
             </span>
           </a>
         )) : (

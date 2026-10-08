@@ -86,8 +86,11 @@ export function renderVue(opt, model) {
           <span class="sp-chip">${SVG.link}<span>{{ l.label }}</span></span>
         </div>
         <span class="sp-link-body">
-          <span class="sp-link-name">{{ l.label }}</span>
-          <span class="sp-link-sub">{{ l.sub }}</span>
+          <img v-if="l.qr" class="sp-link-qr" :src="l.qr" alt="" width="56" height="56" loading="lazy" decoding="async">
+          <span class="sp-link-text">
+            <span class="sp-link-name">{{ l.label }}</span>
+            <span class="sp-link-sub">{{ l.sub }}</span>
+          </span>
         </span>
       </a>
       <p v-if="!d.links.length" class="sp-empty" v-html="t.empty"></p>

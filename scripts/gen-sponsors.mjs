@@ -22,6 +22,7 @@ import { renderReact } from './render-react.mjs';
 import { renderVue } from './render-vue.mjs';
 import { renderSourceHtml } from './render-source.mjs';
 import { cropQr } from './lib/qrcrop.mjs';
+import { qrSvgDataUri } from './lib/qrcode.mjs';
 
 // ─────────────────────────────────────────────────────────────── 常量
 
@@ -503,6 +504,8 @@ function renderLinks(opt) {
     items.push({ label: 'PayPal', sub: opt.links.paypal.replace(/^https?:\/\//, ''), url: opt.links.paypal, accent: '#0070BA' });
   }
   for (const l of opt.extraLinks) items.push({ label: l.label, sub: l.url.replace(/^https?:\/\//, ''), url: l.url, accent: opt.accent });
+  // 网址类外链内嵌二维码：可扫（手机相机）也可点（整卡即链接，新窗口打开）；非 http(s) 不生成
+  for (const it of items) it.qr = /^https?:\/\//i.test(it.url) ? qrSvgDataUri(it.url, { margin: 2 }) : null;
   return items;
 }
 
@@ -538,8 +541,11 @@ function renderHtml(opt, qrList, model) {
             <span class="chip">${ICON.link}<span>${esc(l.label)}</span></span>
           </div>
           <span class="link-body">
-            <span class="link-name">${esc(l.label)}</span>
-            <span class="link-sub">${esc(l.sub)}</span>
+            ${l.qr ? `<img class="link-qr" src="${l.qr}" alt="" width="56" height="56" loading="lazy" decoding="async">` : ''}
+            <span class="link-text">
+              <span class="link-name">${esc(l.label)}</span>
+              <span class="link-sub">${esc(l.sub)}</span>
+            </span>
           </span>
         </a>`).join('\n')
     : `<p class="empty">${t.empty}</p>`;
@@ -942,10 +948,11 @@ function renderEmbed(opt, qrList, model) {
     }).join('');
     var links = MODEL.links.length
       ? MODEL.links.map(function (l) {
-          return '<a class="link" style="--accent:' + esc(l.accent) + '" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">'
-            + '<div class="card-head"><span class="chip">' + ICON.link + '<span>' + esc(l.label) + '</span></span></div>'
-            + '<span class="link-body"><span class="link-name">' + esc(l.label) + '</span>'
-            + '<span class="link-sub">' + esc(l.sub) + '</span></span></a>';
+        return '<a class="link" style="--accent:' + esc(l.accent) + '" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">'
+          + '<div class="card-head"><span class="chip">' + ICON.link + '<span>' + esc(l.label) + '</span></span></div>'
+          + '<span class="link-body">' + (l.qr ? '<img class="link-qr" src="' + l.qr + '" alt="" width="56" height="56" decoding="async">' : '')
+          + '<span class="link-text"><span class="link-name">' + esc(l.label) + '</span>'
+          + '<span class="link-sub">' + esc(l.sub) + '</span></span></span></a>';
         }).join('')
       : '<p class="empty">' + t.empty + '</p>';
     var note = pick(MODEL.note, lang);
@@ -1268,8 +1275,8 @@ body{
 .link:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
 .link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .link-body{
-  flex:1;min-height:150px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  flex:1;min-height:0;
+  display:flex;align-items:center;gap:10px;
   /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
   background:
     radial-gradient(140px 100px at 84% -12%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%),
@@ -1279,10 +1286,16 @@ body{
       transparent 1.5px 13px),
     var(--qr-bg);
   border:1px solid var(--qr-line);border-radius:10px;
-  padding:7px;text-align:center;
+  padding:8px;text-align:left;
   /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
   color:#0f1b2d;
 }
+/* 内嵌二维码 tile：白底独立描边，直接可扫；整卡是 <a>，点它即新窗口跳转 */
+.link-qr{
+  flex:none;width:56px;height:56px;padding:3px;
+  background:#fff;border:1px solid var(--qr-line);border-radius:8px;
+}
+.link-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
 .link-name{font-weight:650;font-size:15px}
 .link-sub{font-size:11.5px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{flex-basis:100%;color:var(--ink2);text-align:center}
@@ -1359,7 +1372,8 @@ body{
   .qr{padding:10px;border-radius:12px}
   .qr img{border-radius:7px}
   .link{padding:12px;border-radius:14px;gap:9px}
-  .link-body{min-height:0;aspect-ratio:6/5;border-radius:12px}
+  .link-body{border-radius:12px;padding:10px;gap:12px}
+  .link-qr{width:72px;height:72px;border-radius:10px;padding:4px}
   .link-name{font-size:17px}
   .link-sub{font-size:12.5px}
   .lightbox{padding:20px}
@@ -1444,7 +1458,8 @@ function cssPopup() {
   .pop-card .chip svg{width:13px;height:13px}
   .pop-card .qr{padding:10px;border-radius:12px}
   .pop-card .qr img{border-radius:7px}
-  .pop-card .link-body{min-height:0;aspect-ratio:6/5;border-radius:12px}
+  .pop-card .link-body{border-radius:12px;padding:10px;gap:12px}
+  .pop-card .link-qr{width:72px;height:72px;border-radius:10px;padding:4px}
   .pop-card .link-name{font-size:17px}
   .pop-card .link-sub{font-size:12.5px}
 }`;
@@ -1510,9 +1525,11 @@ body{
 .link{display:flex;align-items:center;gap:12px;padding:14px 4px;text-decoration:none;color:var(--ink);border-bottom:1px solid var(--line);transition:background .16s}
 .link:hover{background:var(--card-soft)}
 .link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.link-label{font-weight:600;font-size:14.5px}
-.link-sub{margin-left:auto;font-size:12.5px;color:var(--ink2)}
-.link-icon{width:16px;height:16px;color:var(--chip-fg)}
+.link-body{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.link-qr{flex:none;width:44px;height:44px;padding:3px;background:#fff;border:1px solid var(--qr-line);border-radius:8px}
+.link-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.link-name{font-weight:600;font-size:14.5px}
+.link-sub{font-size:12.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{color:var(--ink2);text-align:center}
 .empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px}
 .note{margin-top:32px;text-align:center;color:var(--ink2);font-size:14px}
