@@ -52,14 +52,16 @@ trap 'rm -rf "${TMP}"' EXIT
 "${NODE_BIN}" "${HERE}/shoot.mjs" "${TMP}/block.html" "${TMP}/block.png" 940 820 light
 
 # 4) 转成 jpg 压体积（PNG 截图带照片会到 700KB+，文档里没必要）
-mkdir -p "${ROOT}/assets"
+#    样本图随站点文件一起住在 promo-page/assets/（aa3a14e 迁移后的归属地）
+SAMPLES="${ROOT}/promo-page/assets"
+mkdir -p "${SAMPLES}"
 for pair in \
-  "light:${ROOT}/assets/sample-sponsors.jpg" \
-  "en:${ROOT}/assets/sample-sponsors-en.jpg" \
-  "dark:${ROOT}/assets/sample-sponsors-dark.jpg" \
-  "mobile:${ROOT}/assets/sample-mobile.jpg" \
-  "popup:${ROOT}/assets/sample-popup.jpg" \
-  "block:${ROOT}/assets/sample-readme-block.jpg"
+  "light:${SAMPLES}/sample-sponsors.jpg" \
+  "en:${SAMPLES}/sample-sponsors-en.jpg" \
+  "dark:${SAMPLES}/sample-sponsors-dark.jpg" \
+  "mobile:${SAMPLES}/sample-mobile.jpg" \
+  "popup:${SAMPLES}/sample-popup.jpg" \
+  "block:${SAMPLES}/sample-readme-block.jpg"
 do
   src="${pair%%:*}"; dst="${pair##*:}"
   # 窄屏长图按长边 2000 缩，否则会被压成一条细缝

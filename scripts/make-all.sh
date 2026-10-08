@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # iskill-generate-sponsors · 一键包装
 #
-#   bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi
+#   bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
 #   bash scripts/make-all.sh --config sponsors.config.json --out .
 #
 # 只是找 Node 并转交给 gen-sponsors.mjs，所有参数原样透传。

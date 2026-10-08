@@ -136,11 +136,18 @@ const shoot = (extra) => execFileSync(
 function findAgentBrowser() {
   const cands = [
     process.env.AGENT_BROWSER,
+    path.join(os.homedir(), '.workbuddy/binaries/node/versions/22.22.2-6/bin/agent-browser'),
     path.join(os.homedir(), '.workbuddy/binaries/node/versions/22.22.2-3/bin/agent-browser'),
     '/opt/homebrew/bin/agent-browser',
     '/usr/local/bin/agent-browser',
   ].filter(Boolean);
-  return cands.find(p => { try { return fs.statSync(p).isFile(); } catch { return false; } }) || null;
+  const hit = cands.find(p => { try { return fs.statSync(p).isFile(); } catch { return false; } });
+  if (hit) return hit;
+  // 写死路径都落空时再查一次 PATH（node 版本目录会升级换代，PATH 不会撒谎）
+  try {
+    const onPath = execFileSync('sh', ['-c', 'command -v agent-browser || true'], { encoding: 'utf8' }).trim();
+    return onPath || null;
+  } catch { return null; }
 }
 
 function shootViaAgentBrowser(ab) {

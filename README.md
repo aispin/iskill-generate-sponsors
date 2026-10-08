@@ -12,7 +12,7 @@
 
 ```bash
 # 1) 从收款码目录一把梭（按文件名自动识别支付宝 / 微信 / QQ / 云闪付 / PayPal）
-bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi
+bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
 
 # 2) 配置驱动（推荐，长期复用；本仓库的 sponsors.config.json 可直接抄）
 cp sponsors.config.json my.config.json
@@ -65,7 +65,7 @@ Open Collective / Polar / Buy Me a Coffee / IssueHunt / thanks.dev），
 | --- | --- |
 | **支付宝** | 扫码（见上方二维码） |
 | **微信** | 扫码（见上方二维码） |
-| PayPal | [https://paypal.me/zeovi](https://paypal.me/zeovi) |
+| PayPal | [https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4](https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4) |
 
 中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。
 

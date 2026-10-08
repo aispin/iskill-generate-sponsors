@@ -15,7 +15,7 @@
 | --- | --- |
 | **支付宝** | 扫码（见上方二维码） |
 | **微信** | 扫码（见上方二维码） |
-| PayPal | [https://paypal.me/zeovi](https://paypal.me/zeovi) |
+| PayPal | [https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4](https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4) |
 
 中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。
 
@@ -40,7 +40,7 @@
 # 提交后仓库页右上会出现 Sponsor 按钮。
 
 custom:
-  - "https://paypal.me/zeovi"
+  - "https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4"
 
 # 微信 / 支付宝等扫码收款码不是 GitHub 支持的平台，无法直接配置。
 # 它们已内联展示在 README 的赞助区块，图片在 .github/sponsor/

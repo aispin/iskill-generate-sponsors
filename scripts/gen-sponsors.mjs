@@ -10,7 +10,7 @@
  * 没有 sips（Linux/Windows）时原样拷贝，不影响其余产物。
  *
  * 用法：
- *   node gen-sponsors.mjs --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi
+ *   node gen-sponsors.mjs --from ~/收款码 --name ZEO --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
  *   node gen-sponsors.mjs --config sponsors.config.json --out .
  *   node gen-sponsors.mjs --help
  */
@@ -109,7 +109,7 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
                           不填则英文沿用中文文案（二维码渠道名与界面文案已内置英文）
 
 赞助链接（值是用户名，PayPal 例外传完整 URL）
-  --paypal <url>           例：https://paypal.me/zeovi
+  --paypal <url>           例：https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
   --kofi <用户名>            --liberapay <用户名>     --github <用户名>
   --patreon <用户名>         --bmc <用户名>           --link <完整URL>
 
@@ -137,7 +137,7 @@ iskill-generate-sponsors · 收款码 → 赞助页（md + html + FUNDING.yml）
   --force                  覆盖已存在的图片（默认也会覆盖，此开关仅语义明确）
 
 示例
-  node gen-sponsors.mjs --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi \\
+  node gen-sponsors.mjs --from ~/收款码 --name ZEO --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4 \\
                         --kofi zeo --project my-project --out .
 `);
 }

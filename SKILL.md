@@ -10,7 +10,7 @@ agent_created: true
 一张收款码 → 一整套能直接用的赞助页。
 
 ```bash
-bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi
+bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
 ```
 
 产出：`.github/sponsor/*.jpg` · `.github/FUNDING.yml` · `SPONSORS.md` · `sponsors.html`（响应式 + 中英双语）·
@@ -84,7 +84,7 @@ bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://paypal.m
 
 ```bash
 # A. 一把梭：扫描目录，按文件名自动认渠道
-bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://paypal.me/zeovi
+bash scripts/make-all.sh --from ~/收款码 --name ZEO --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
 
 # B. 配置驱动（推荐，长期复用；改一次以后重跑就行）
 bash scripts/make-all.sh --config sponsors.config.json --out /path/to/repo
@@ -93,7 +93,7 @@ bash scripts/make-all.sh --config sponsors.config.json --out /path/to/repo
 node scripts/gen-sponsors.mjs \
   --qr "支付宝=~/收款码/alipay.JPG" \
   --qr "微信=~/收款码/wechat.JPG" \
-  --paypal https://paypal.me/zeovi --kofi zeo --out .
+  --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4 --kofi zeo --out .
 ```
 
 先看看会做什么、不落盘：

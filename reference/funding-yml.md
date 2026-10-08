@@ -40,7 +40,7 @@ custom: ["https://www.paypal.me/octocat", octocat.com]
 
 1. **`custom` 数组里含 `:` 的 URL 必须加引号。**
    写 `- https://paypal.me/x` 在多数 YAML 解析器里能过，但 `https://` 里的 `:` 会踩坑。
-   本技能统一输出 `- "https://paypal.me/zeovi"` 形式，**永远加引号**。
+   本技能统一输出 `- "https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4"` 形式，**永远加引号**。
 
 2. **`custom` 最多 4 条**，超出的会被忽略（本技能会打印警告并截断）。
 
@@ -62,10 +62,10 @@ custom: ["https://www.paypal.me/octocat", octocat.com]
 
 ```bash
 # 只配 custom 一条 PayPal
-node scripts/gen-sponsors.mjs --paypal https://paypal.me/zeovi
+node scripts/gen-sponsors.mjs --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4
 
 # PayPal 走 custom，Ko-fi / Liberapay 走原生键
-node scripts/gen-sponsors.mjs --paypal https://paypal.me/zeovi --kofi zeo --liberapay zeo
+node scripts/gen-sponsors.mjs --paypal https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4 --kofi zeo --liberapay zeo
 ```
 
 生成的 `FUNDING.yml` 会带注释，末尾额外用注释列出**无法进 FUNDING 的收款码**落在哪，
