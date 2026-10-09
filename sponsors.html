@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>赞助支持 · iskill-generate-sponsors</title>
+<meta name="description" content="如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕">
+<meta name="color-scheme" content="light dark">
+<script>
+/* 主题 / 语言：URL 上 #theme=light|dark 与 #lang=zh|en 优先（分享、截图可复现），
+   其次 localStorage，再次跟随系统。必须在 <style> 之前跑，否则首帧会闪一下白。 */
+(function(){
+  var h = location.hash || '';
+  function hval(k, re){ var m = h.match(new RegExp('[#&]' + k + '=(' + re + ')')); return m ? m[1] : null; }
+  function store(k){ try { return localStorage.getItem('sponsor-' + k); } catch (e) { return null; } }
+  var th = hval('theme', 'light|dark') || store('theme');
+  if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th);
+  var lg = hval('lang', 'zh|en') || store('lang') || sysLang('zh');
+  if (lg === 'zh' || lg === 'en') document.documentElement.setAttribute('data-lang', lg);
+  function sysLang(def){
+    try { var l = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      if (!l || l === 'und') return def;               // SSR / 未知语言 → 生成配置默认
+      return l.indexOf('zh') === 0 ? 'zh' : 'en';      // zh-CN/zh-TW/zh-HK → 中文，其余 → 英文
+    } catch (e) { return def; }
+  }
+})();
+</script>
+<style>
+:root{
+  color-scheme:light;
+  --ink:#0f1b2d; --ink2:#55637a; --ink3:#93a1b4;
+  --line:#e3e9f2; --card:#ffffff; --card-soft:#fafcff;
+  --bg:radial-gradient(900px 480px at 12% -8%,#e8f1ff 0,transparent 62%),
+       radial-gradient(760px 420px at 92% 4%,#e6fbf2 0,transparent 58%),
+       linear-gradient(180deg,#f5f8fc,#eef3f9);
+  --badge-fg:#0b7f68; --badge-bg:#e2f7f1; --badge-line:#bde9dd;
+  --qr-bg:#ffffff; --qr-line:#e3e9f2;
+  --shadow:0 1px 2px rgba(16,32,56,.04), 0 12px 32px -12px rgba(16,32,56,.18);
+  --shadow-hi:0 1px 2px rgba(16,32,56,.05), 0 22px 46px -16px rgba(16,32,56,.26);
+  --code-bg:#eef2f8;
+  --ui-bg:rgba(255,255,255,.82); --ui-line:#e3e9f2;
+  --chip-bg:color-mix(in srgb,var(--accent) 12%,var(--card));
+  --chip-fg:color-mix(in srgb,var(--accent) 62%,var(--ink));
+  --chip-line:color-mix(in srgb,var(--accent) 26%,var(--card));
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#eaf0f8; --ink2:#9fadc0; --ink3:#7b8a9d;
+  --line:#22303f; --card:#141d29; --card-soft:#192433;
+  --bg:radial-gradient(900px 480px at 12% -8%,#152337 0,transparent 62%),
+       radial-gradient(760px 420px at 92% 4%,#122a26 0,transparent 58%),
+       linear-gradient(180deg,#0d131d,#111a26);
+  --badge-fg:#8ff0d4; --badge-bg:#122a26; --badge-line:#1e4a41;
+  --qr-bg:#ffffff; --qr-line:#2b3a4b;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -12px rgba(0,0,0,.65);
+  --shadow-hi:0 1px 2px rgba(0,0,0,.4), 0 22px 46px -16px rgba(0,0,0,.75);
+  --code-bg:#1b2635;
+  --ui-bg:rgba(20,29,41,.86); --ui-line:#26364a;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ink:#eaf0f8; --ink2:#9fadc0; --ink3:#7b8a9d;
+    --line:#22303f; --card:#141d29; --card-soft:#192433;
+    --bg:radial-gradient(900px 480px at 12% -8%,#152337 0,transparent 62%),
+         radial-gradient(760px 420px at 92% 4%,#122a26 0,transparent 58%),
+         linear-gradient(180deg,#0d131d,#111a26);
+    --badge-fg:#8ff0d4; --badge-bg:#122a26; --badge-line:#1e4a41;
+    --qr-bg:#ffffff; --qr-line:#2b3a4b;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -12px rgba(0,0,0,.65);
+    --shadow-hi:0 1px 2px rgba(0,0,0,.4), 0 22px 46px -16px rgba(0,0,0,.75);
+    --code-bg:#1b2635;
+    --ui-bg:rgba(20,29,41,.86); --ui-line:#26364a;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; padding:clamp(22px,4vw,36px) clamp(14px,3vw,18px) clamp(34px,5vw,52px); color:var(--ink);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); background-attachment:fixed;
+  min-height:100vh; transition:color .2s;
+}
+.wrap{max-width:720px;margin:0 auto}
+
+.hero{text-align:center;margin-bottom:20px}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10.5px;font-weight:700;letter-spacing:.16em;
+  color:var(--badge-fg);background:var(--badge-bg);border:1px solid var(--badge-line);
+  padding:4px 11px;border-radius:999px;
+}
+.badge svg{width:12px;height:12px}
+.hero h1{font-size:clamp(19px,3vw,25px);line-height:1.3;margin:10px 0 5px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--ink2);font-size:13.5px}
+
+/* 所有赞助方式（码 + 链接）通栏一行，窄屏自动换行 */
+.qrs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:stretch}
+
+.card{
+  --accent:#10C8A1;
+  position:relative;margin:0;width:200px;max-width:100%;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:10px;
+  display:flex;flex-direction:column;gap:7px;
+  transition:transform .18s,box-shadow .18s;
+  overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;inset:0 0 auto;height:3px;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 45%,var(--card)));
+}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
+
+.card-head{display:flex;align-items:center;gap:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;font-weight:650;
+  color:var(--chip-fg);background:var(--chip-bg);border:1px solid var(--chip-line);
+  padding:3px 9px;border-radius:999px;
+}
+.chip svg{width:12px;height:12px}
+.hint{font-size:10.5px;color:var(--ink3);white-space:nowrap}
+
+.qr{
+  position:relative;display:block;width:100%;padding:7px;margin:0;cursor:zoom-in;
+  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:10px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.qr:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--qr-line));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.qr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.qr img{display:block;width:100%;height:auto;border-radius:5px}
+.zoom{
+  position:absolute;right:12px;bottom:12px;width:26px;height:26px;border-radius:8px;
+  display:grid;place-items:center;color:#fff;background:rgba(15,27,45,.55);
+  backdrop-filter:blur(6px);opacity:0;transition:opacity .2s;
+}
+.zoom svg{width:14px;height:14px}
+.qr:hover .zoom{opacity:1}
+
+/* 链接卡与码卡同构：卡壳同款（同宽/同 accent 条/chip 头），
+   主体 = 链接地址生成的大幅二维码，与码卡同一款白底圆角容器（.qr 同 padding/描边/圆角），卡高自然对齐 */
+.link{
+  --accent:#10C8A1;
+  position:relative;margin:0;width:200px;max-width:100%;
+  display:flex;flex-direction:column;gap:7px;
+  padding:10px;text-decoration:none;color:var(--ink);
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);
+  transition:transform .18s,box-shadow .18s;
+  overflow:hidden;
+}
+.link::before{
+  content:"";position:absolute;inset:0 0 auto;height:3px;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 45%,var(--card)));
+}
+.link:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi)}
+.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.link-body{
+  flex:1;min-height:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:7px;margin:0;
+  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:10px;
+}
+.link-qr{display:block;width:100%;height:auto;border-radius:5px}
+/* card 风格正文只放大码，不放 URL 文字（名称在 chip 上；minimal 列表风格自行放开 .link-text） */
+.link-text{display:none}
+/* 非 http(s) 链接无码可嵌：兜底为居中文字（容器仍与码面同款白底描边） */
+.link-plain{
+  flex-direction:column;gap:4px;text-align:center;padding:10px;
+  /* 文字固定深色（容器恒白底，不随主题翻转） */
+  color:#0f1b2d;
+}
+.link-plain .link-text{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.link-plain .link-name{font-weight:650;font-size:15px}
+.link-plain .link-sub{font-size:11.5px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{flex-basis:100%;color:var(--ink2);text-align:center}
+.empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-size:13.5px}
+
+.note{margin:16px 0 0;text-align:center;color:var(--ink2);font-size:12.5px}
+.foot{margin-top:22px;text-align:center;font-size:12px;color:var(--ink3)}
+.foot a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--line)}
+.foot a:hover{color:var(--ink)}
+
+.tools{position:fixed;top:14px;right:14px;z-index:20;display:flex;gap:7px}
+@media (max-width:520px){.tools{top:10px;right:10px;gap:6px}}
+.icon-btn{
+  width:32px;height:32px;border-radius:10px;padding:0;
+  display:grid;place-items:center;cursor:pointer;color:var(--ink2);
+  background:var(--ui-bg);border:1px solid var(--ui-line);
+  backdrop-filter:blur(10px);box-shadow:0 4px 14px -8px rgba(16,32,56,.5);
+  font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.02em;
+}
+@media (max-width:520px){.icon-btn{width:30px;height:30px}}
+.icon-btn:hover{color:var(--ink)}
+.icon-btn svg{width:15px;height:15px}
+.icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.lightbox{
+  position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+  background:rgba(9,16,28,.78);backdrop-filter:blur(10px);
+  padding:32px;cursor:zoom-out;animation:fade .18s ease;
+}
+.lightbox[hidden]{display:none}
+.lightbox img{
+  max-width:min(440px,86vw);max-height:76vh;width:auto;height:auto;
+  background:#fff;padding:14px;border-radius:20px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.6);
+}
+.lb-cap{color:#e8eef7;font-size:14.5px;margin:0;letter-spacing:.02em}
+.lb-close{
+  position:absolute;top:20px;right:22px;width:40px;height:40px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;
+  font-size:22px;line-height:1;cursor:pointer;
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{
+  body{background:#fff;padding:0}
+  .card,.link{box-shadow:none;break-inside:avoid;background:#fff}
+  .qr{cursor:default}
+  .zoom,.foot,.tools{display:none}
+  .lightbox{display:none}
+}
+.icon-btn .ic-moon{display:none}
+:root[data-theme="dark"] .icon-btn .ic-sun{display:none}
+:root[data-theme="dark"] .icon-btn .ic-moon{display:block}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .icon-btn .ic-sun{display:none}
+  :root:not([data-theme="light"]) .icon-btn .ic-moon{display:block}
+}
+
+/* ── 响应式：单列时卡片通栏，只留**左右各 40px** 边距；卡片与内容同步放大 ──
+   原来卡片写死 200px，390 屏下左右各空出约 95px —— 码被挤小、两边一大片白
+   （2026-10-02 用户反馈）。现在 body 左右 40px + 卡片 width:100%，
+   于是卡片宽度 = 视口 − 80（390 屏 → 310px），内边距/字号/圆角一起加上去。 */
+@media (max-width:520px){
+  body{padding:22px 40px 38px}
+  .hero{margin-bottom:16px}
+  .qrs{gap:12px}
+  .card,.link{width:100%}
+  .card{padding:12px;border-radius:14px;gap:9px}
+  .chip{font-size:12.5px;padding:4px 11px}
+  .chip svg{width:13px;height:13px}
+  .hint{font-size:11.5px}
+  .qr{padding:10px;border-radius:12px}
+  .qr img{border-radius:7px}
+  .link{padding:12px;border-radius:14px;gap:9px}
+  .link-body{border-radius:12px;padding:10px}
+  .link-qr{border-radius:7px}
+  .link-sub{font-size:12.5px}
+  .lightbox{padding:20px}
+  .lb-close{top:14px;right:16px}
+}
+.sponsor-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 22px;border-radius:999px;cursor:pointer;
+  font:inherit;font-size:14px;font-weight:700;letter-spacing:.04em;
+  color:#fff;border:0;
+  background:linear-gradient(135deg,var(--brand,#10C8A1),color-mix(in srgb,var(--brand,#10C8A1) 55%,#6366F1));
+  box-shadow:0 10px 26px -12px color-mix(in srgb,var(--brand,#10C8A1) 70%,transparent);
+  transition:transform .18s,box-shadow .18s;
+}
+.sponsor-btn svg{width:16px;height:16px}
+.sponsor-btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -12px color-mix(in srgb,var(--brand,#10C8A1) 80%,transparent)}
+.sponsor-btn:focus-visible{outline:2px solid var(--brand,#10C8A1);outline-offset:3px}
+
+.pop{
+  position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  background:rgba(9,16,28,.62);backdrop-filter:blur(8px);
+  padding:22px;animation:fade .18s ease;
+}
+.pop[hidden]{display:none}
+.pop-card{
+  position:relative;width:min(700px,100%);max-height:86vh;overflow:auto;
+  background:var(--card);border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow-hi);padding:22px 18px 18px;
+}
+.pop-head{margin-bottom:16px}
+.pop-head h1{font-size:19px;margin:12px 0 0}
+.pop-close{
+  position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--line);background:var(--ui-bg);color:var(--ink2);
+  font-size:18px;line-height:1;cursor:pointer;
+}
+.pop-close:hover{color:var(--ink)}
+.pop-card .note{margin-top:14px}
+.pop-card .qrs{gap:12px}
+/* 弹性卡片：先挤到 150px，挤不动才换行 —— 桌面端（≥561px）三种方式恒在一行 */
+.pop-card .qrs > .card,
+.pop-card .qrs > .link{width:auto;flex:1 1 150px;max-width:200px}
+/* 手机：一行一个，卡片同步放大到「距屏幕左右各 40px」——
+   24（.pop 内边距）+ 16（.pop-card 内边距）= 40，与首屏单列卡片对齐；
+   卡片内容（内边距 / chip / 码面圆角）跟着一起放大。 */
+@media (max-width:560px){
+  .pop{padding:24px}
+  .pop-card{padding:20px 16px 18px;border-radius:18px}
+  .pop-card .qrs{gap:14px}
+  .pop-card .qrs > .card,
+  .pop-card .qrs > .link{flex-basis:100%;max-width:none}
+  .pop-card .card,
+  .pop-card .link{padding:12px;border-radius:14px;gap:9px}
+  .pop-card .chip{font-size:12.5px;padding:4px 11px}
+  .pop-card .chip svg{width:13px;height:13px}
+  .pop-card .qr{padding:10px;border-radius:12px}
+  .pop-card .qr img{border-radius:7px}
+  .pop-card .link-body{border-radius:12px;padding:10px}
+  .pop-card .link-qr{border-radius:7px}
+}
+.pop-entry{margin:26px auto 0;padding-top:22px;border-top:1px dashed var(--line);text-align:center}
+.pop-entry h2{margin:0 0 6px;font-size:13.5px;font-weight:700;letter-spacing:.02em}
+.pop-entry p{margin:0 auto 16px;max-width:44ch;font-size:12.5px;line-height:1.7;color:var(--ink2)}
+
+</style>
+</head>
+<body>
+<div class="tools">
+  <button class="icon-btn lang-toggle" type="button" aria-label="切换中文 / English" title="切换中文 / English"><span class="lang-short">EN</span></button>
+  <button class="icon-btn theme-toggle" type="button" aria-label="切换深色 / 浅色" title="切换深色 / 浅色">
+    <span class="ic-sun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></svg></span><span class="ic-moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7Z"/></svg></span>
+  </button>
+</div>
+<main class="wrap">
+  <header class="hero">
+    <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 4.2-5.4 8-8.8 10.4C8.6 16.6 3.2 12.8 3.2 8.6A4.6 4.6 0 0 1 12 6.4a4.6 4.6 0 0 1 8.8 2.2Z"/></svg><span data-slot="badge">赞助支持</span></span>
+    <h1 data-slot="title">赞助支持 · iskill-generate-sponsors</h1>
+    <p class="lede" data-slot="tagline">如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕</p>
+  </header>
+
+  <section class="qrs">
+
+      <figure class="card" data-i="0" style="--accent:#1677FF">
+        <div class="card-head">
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg><span data-slot="chip">支付宝</span></span>
+        </div>
+        <button class="qr" type="button" data-label="支付宝" aria-label="放大支付宝收款码">
+          <img src="assets/sponsor/alipay.jpg" alt="支付宝收款码" loading="lazy" decoding="async">
+          <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg></span>
+        </button>
+      </figure>
+
+      <figure class="card" data-i="1" style="--accent:#07C160">
+        <div class="card-head">
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg><span data-slot="chip">微信</span></span>
+        </div>
+        <button class="qr" type="button" data-label="微信" aria-label="放大微信收款码">
+          <img src="assets/sponsor/wechat.jpg" alt="微信收款码" loading="lazy" decoding="async">
+          <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg></span>
+        </button>
+      </figure>
+
+        <a class="link" style="--accent:#0070BA" href="https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4" target="_blank" rel="noopener noreferrer">
+          <div class="card-head">
+            <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/></svg><span>PayPal</span></span>
+          </div>
+          <span class="link-body">
+            <img class="link-qr" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNyAzNyIgd2lkdGg9IjU5MiIgaGVpZ2h0PSI1OTIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHJlY3Qgd2lkdGg9IjM3IiBoZWlnaHQ9IjM3IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTIgMmg3djFoLTd6TTEwIDJoMnYxaC0yek0yMCAyaDF2MWgtMXpNMjQgMmgxdjFoLTF6TTI4IDJoN3YxaC03ek0yIDNoMXYxaC0xek04IDNoMXYxaC0xek0xMCAzaDF2MWgtMXpNMTggM2gydjFoLTJ6TTIxIDNoMXYxaC0xek0yMyAzaDJ2MWgtMnpNMjYgM2gxdjFoLTF6TTI4IDNoMXYxaC0xek0zNCAzaDF2MWgtMXpNMiA0aDF2MWgtMXpNNCA0aDN2MWgtM3pNOCA0aDF2MWgtMXpNMTAgNGgydjFoLTJ6TTEzIDRoMnYxaC0yek0xNyA0aDR2MWgtNHpNMjIgNGgzdjFoLTN6TTI2IDRoMXYxaC0xek0yOCA0aDF2MWgtMXpNMzAgNGgzdjFoLTN6TTM0IDRoMXYxaC0xek0yIDVoMXYxaC0xek00IDVoM3YxaC0zek04IDVoMXYxaC0xek0xMSA1aDF2MWgtMXpNMjEgNWgxdjFoLTF6TTI2IDVoMXYxaC0xek0yOCA1aDF2MWgtMXpNMzAgNWgzdjFoLTN6TTM0IDVoMXYxaC0xek0yIDZoMXYxaC0xek00IDZoM3YxaC0zek04IDZoMXYxaC0xek0xMCA2aDR2MWgtNHpNMTUgNmgzdjFoLTN6TTIwIDZoMXYxaC0xek0yMiA2aDJ2MWgtMnpNMjUgNmgxdjFoLTF6TTI4IDZoMXYxaC0xek0zMCA2aDN2MWgtM3pNMzQgNmgxdjFoLTF6TTIgN2gxdjFoLTF6TTggN2gxdjFoLTF6TTEzIDdoMnYxaC0yek0xOSA3aDF2MWgtMXpNMjIgN2gxdjFoLTF6TTI0IDdoM3YxaC0zek0yOCA3aDF2MWgtMXpNMzQgN2gxdjFoLTF6TTIgOGg3djFoLTd6TTEwIDhoMXYxaC0xek0xMiA4aDF2MWgtMXpNMTQgOGgxdjFoLTF6TTE2IDhoMXYxaC0xek0xOCA4aDF2MWgtMXpNMjAgOGgxdjFoLTF6TTIyIDhoMXYxaC0xek0yNCA4aDF2MWgtMXpNMjYgOGgxdjFoLTF6TTI4IDhoN3YxaC03ek0xMSA5aDF2MWgtMXpNMTUgOWgxdjFoLTF6TTIxIDloMnYxaC0yek0yNCA5aDJ2MWgtMnpNMiAxMGgxdjFoLTF6TTUgMTBoMTB2MWgtMTB6TTE2IDEwaDZ2MWgtNnpNMjcgMTBoMXYxaC0xek0zMCAxMGgxdjFoLTF6TTMyIDEwaDN2MWgtM3pNMiAxMWgxdjFoLTF6TTUgMTFoMXYxaC0xek03IDExaDF2MWgtMXpNOSAxMWgxdjFoLTF6TTExIDExaDN2MWgtM3pNMTYgMTFoMnYxaC0yek0yMCAxMWgydjFoLTJ6TTIzIDExaDF2MWgtMXpNMjUgMTFoMXYxaC0xek0zMCAxMWg0djFoLTR6TTIgMTJoMXYxaC0xek00IDEyaDF2MWgtMXpNNyAxMmgydjFoLTJ6TTEyIDEyaDF2MWgtMXpNMTQgMTJoMXYxaC0xek0xNiAxMmgydjFoLTJ6TTE5IDEyaDJ2MWgtMnpNMjUgMTJoMnYxaC0yek0yOCAxMmgxdjFoLTF6TTMwIDEyaDV2MWgtNXpNMiAxM2gxdjFoLTF6TTUgMTNoMnYxaC0yek05IDEzaDF2MWgtMXpNMTEgMTNoNHYxaC00ek0xNiAxM2gxdjFoLTF6TTE4IDEzaDJ2MWgtMnpNMjEgMTNoMXYxaC0xek0yOCAxM2gydjFoLTJ6TTMyIDEzaDF2MWgtMXpNMzQgMTNoMXYxaC0xek0yIDE0aDF2MWgtMXpNNCAxNGgzdjFoLTN6TTggMTRoMXYxaC0xek0xMCAxNGgxdjFoLTF6TTE1IDE0aDl2MWgtOXpNMjYgMTRoMXYxaC0xek0yOCAxNGgxdjFoLTF6TTMwIDE0aDF2MWgtMXpNMiAxNWgydjFoLTJ6TTYgMTVoMnYxaC0yek05IDE1aDJ2MWgtMnpNMTMgMTVoMXYxaC0xek0xNSAxNWgxdjFoLTF6TTE4IDE1aDJ2MWgtMnpNMjEgMTVoMXYxaC0xek0yMyAxNWgydjFoLTJ6TTI3IDE1aDN2MWgtM3pNMzEgMTVoMnYxaC0yek0yIDE2aDN2MWgtM3pNNiAxNmgxdjFoLTF6TTggMTZoMXYxaC0xek0xMCAxNmg0djFoLTR6TTE1IDE2aDJ2MWgtMnpNMTggMTZoMnYxaC0yek0yMyAxNmgydjFoLTJ6TTI4IDE2aDJ2MWgtMnpNMzIgMTZoMXYxaC0xek0yIDE3aDJ2MWgtMnpNNSAxN2gxdjFoLTF6TTcgMTdoMXYxaC0xek0xMiAxN2g2djFoLTZ6TTIxIDE3aDF2MWgtMXpNMjUgMTdoMXYxaC0xek0yNyAxN2gxdjFoLTF6TTI5IDE3aDJ2MWgtMnpNMzIgMTdoMXYxaC0xek0zNCAxN2gxdjFoLTF6TTIgMThoMXYxaC0xek02IDE4aDN2MWgtM3pNMTIgMThoMXYxaC0xek0xNCAxOGgxdjFoLTF6TTE2IDE4aDF2MWgtMXpNMTggMThoMXYxaC0xek0yMSAxOGgydjFoLTJ6TTI0IDE4aDh2MWgtOHpNMiAxOWgxdjFoLTF6TTQgMTloM3YxaC0zek05IDE5aDN2MWgtM3pNMTMgMTloM3YxaC0zek0xNyAxOWgxdjFoLTF6TTIwIDE5aDN2MWgtM3pNMjYgMTloM3YxaC0zek0zMCAxOWgxdjFoLTF6TTMyIDE5aDF2MWgtMXpNMzQgMTloMXYxaC0xek0yIDIwaDN2MWgtM3pNOCAyMGgydjFoLTJ6TTEzIDIwaDF2MWgtMXpNMTUgMjBoM3YxaC0zek0yMSAyMGgzdjFoLTN6TTI1IDIwaDF2MWgtMXpNMjkgMjBoMXYxaC0xek0zMSAyMGgydjFoLTJ6TTM0IDIwaDF2MWgtMXpNMiAyMWg2djFoLTZ6TTkgMjFoMXYxaC0xek0xMyAyMWgxdjFoLTF6TTE1IDIxaDF2MWgtMXpNMTcgMjFoNHYxaC00ek0yNCAyMWgydjFoLTJ6TTI4IDIxaDF2MWgtMXpNMzAgMjFoM3YxaC0zek0zNCAyMWgxdjFoLTF6TTIgMjJoMXYxaC0xek00IDIyaDJ2MWgtMnpNNyAyMmg2djFoLTZ6TTE1IDIyaDJ2MWgtMnpNMjIgMjJoMXYxaC0xek0yNCAyMmgxdjFoLTF6TTMxIDIyaDF2MWgtMXpNMiAyM2gxdjFoLTF6TTYgMjNoMnYxaC0yek0xMCAyM2gydjFoLTJ6TTEzIDIzaDF2MWgtMXpNMTUgMjNoMXYxaC0xek0xOCAyM2gzdjFoLTN6TTIyIDIzaDF2MWgtMXpNMjUgMjNoMnYxaC0yek0yOCAyM2gxdjFoLTF6TTMwIDIzaDJ2MWgtMnpNMiAyNGgxdjFoLTF6TTYgMjRoMXYxaC0xek04IDI0aDF2MWgtMXpNMTIgMjRoMnYxaC0yek0xNiAyNGgzdjFoLTN6TTIzIDI0aDF2MWgtMXpNMjUgMjRoNnYxaC02ek0zMyAyNGgydjFoLTJ6TTIgMjVoMXYxaC0xek00IDI1aDN2MWgtM3pNMTAgMjVoMnYxaC0yek0xNSAyNWgydjFoLTJ6TTE4IDI1aDN2MWgtM3pNMjQgMjVoMXYxaC0xek0yNyAyNWgzdjFoLTN6TTMyIDI1aDF2MWgtMXpNMiAyNmgydjFoLTJ6TTcgMjZoMnYxaC0yek0xMCAyNmgxdjFoLTF6TTEyIDI2aDJ2MWgtMnpNMTYgMjZoM3YxaC0zek0yMSAyNmgydjFoLTJ6TTI1IDI2aDZ2MWgtNnpNMzIgMjZoM3YxaC0zek0xMCAyN2gzdjFoLTN6TTE1IDI3aDN2MWgtM3pNMjAgMjdoMXYxaC0xek0yMiAyN2gxdjFoLTF6TTI1IDI3aDJ2MWgtMnpNMzAgMjdoMXYxaC0xek0zMiAyN2gydjFoLTJ6TTIgMjhoN3YxaC03ek0xMCAyOGgxdjFoLTF6TTEyIDI4aDF2MWgtMXpNMTYgMjhoM3YxaC0zek0yMCAyOGgydjFoLTJ6TTIzIDI4aDF2MWgtMXpNMjUgMjhoMnYxaC0yek0yOCAyOGgxdjFoLTF6TTMwIDI4aDF2MWgtMXpNMzIgMjhoMXYxaC0xek0yIDI5aDF2MWgtMXpNOCAyOWgxdjFoLTF6TTEwIDI5aDF2MWgtMXpNMTMgMjloMXYxaC0xek0xNSAyOWgydjFoLTJ6TTE4IDI5aDF2MWgtMXpNMjQgMjloM3YxaC0zek0zMCAyOWg1djFoLTV6TTIgMzBoMXYxaC0xek00IDMwaDN2MWgtM3pNOCAzMGgxdjFoLTF6TTEwIDMwaDF2MWgtMXpNMTMgMzBoMnYxaC0yek0xNyAzMGgxdjFoLTF6TTE5IDMwaDV2MWgtNXpNMjUgMzBoNnYxaC02ek0zMyAzMGgxdjFoLTF6TTIgMzFoMXYxaC0xek00IDMxaDN2MWgtM3pNOCAzMWgxdjFoLTF6TTEwIDMxaDF2MWgtMXpNMTIgMzFoMXYxaC0xek0xNiAzMWgxdjFoLTF6TTE5IDMxaDF2MWgtMXpNMjIgMzFoMXYxaC0xek0yNCAzMWgxdjFoLTF6TTI3IDMxaDF2MWgtMXpNMjkgMzFoMXYxaC0xek0zMSAzMWg0djFoLTR6TTIgMzJoMXYxaC0xek00IDMyaDN2MWgtM3pNOCAzMmgxdjFoLTF6TTEzIDMyaDF2MWgtMXpNMTUgMzJoMnYxaC0yek0xOCAzMmgxdjFoLTF6TTIwIDMyaDF2MWgtMXpNMjIgMzJoM3YxaC0zek0yNiAzMmgxdjFoLTF6TTI5IDMyaDJ2MWgtMnpNMzMgMzJoMnYxaC0yek0yIDMzaDF2MWgtMXpNOCAzM2gxdjFoLTF6TTExIDMzaDR2MWgtNHpNMTYgMzNoM3YxaC0zek0yNCAzM2gxdjFoLTF6TTI2IDMzaDF2MWgtMXpNMjggMzNoN3YxaC03ek0yIDM0aDd2MWgtN3pNMTAgMzRoMXYxaC0xek0xMiAzNGgxdjFoLTF6TTE0IDM0aDJ2MWgtMnpNMTkgMzRoMXYxaC0xek0yNSAzNGgydjFoLTJ6TTI5IDM0aDJ2MWgtMnpNMzIgMzRoMXYxaC0xeiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==" alt="" loading="lazy" decoding="async">
+            <span class="link-text">
+              <span class="link-name">PayPal</span>
+              <span class="link-sub">www.paypal.com/ncp/payment/SN6RMEF7FNKU4</span>
+            </span>
+          </span>
+        </a>
+  </section>
+
+  <p class="note" data-slot="note">中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。</p>
+
+  <!-- 第二段：弹层入口 —— 页面的「弹层形态」就是这段按钮 + 下面的 .pop。
+       这页既是仓库展示页、也是用户直接部署的赞助页，所以文案走访客口吻，
+       不出现命令行 / 形态名。 -->
+  <section class="pop-entry">
+    <h2 data-slot="pop-sec-title">也可以点开看</h2>
+    <p data-slot="pop-sec-hint">点下面的按钮，全部赞助方式会在弹层里重新排一遍。</p>
+    <button class="sponsor-btn" type="button" style="--brand:#10C8A1" aria-haspopup="dialog" aria-label="打开赞助弹窗">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 4.2-5.4 8-8.8 10.4C8.6 16.6 3.2 12.8 3.2 8.6A4.6 4.6 0 0 1 12 6.4a4.6 4.6 0 0 1 8.8 2.2Z"/></svg><span data-slot="pop-label">赞助支持</span>
+    </button>
+  </section>
+
+  <footer class="foot" data-slot="foot">由 <a href="https://github.com/aispin/iskill-generate-sponsors" target="_blank" rel="noopener noreferrer">iskill-generate-sponsors</a> 生成 · 2026-10-09</footer>
+</main>
+
+<div class="pop" hidden role="dialog" aria-modal="true">
+  <div class="pop-card">
+    <button class="pop-close" type="button" aria-label="关闭赞助弹窗">×</button>
+    <header class="hero pop-head">
+      <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 4.2-5.4 8-8.8 10.4C8.6 16.6 3.2 12.8 3.2 8.6A4.6 4.6 0 0 1 12 6.4a4.6 4.6 0 0 1 8.8 2.2Z"/></svg><span data-slot="badge">赞助支持</span></span>
+      <h1 data-slot="title">赞助支持 · iskill-generate-sponsors</h1>
+    </header>
+
+    <section class="qrs">
+
+      <figure class="card" data-i="0" style="--accent:#1677FF">
+        <div class="card-head">
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg><span data-slot="chip">支付宝</span></span>
+        </div>
+        <button class="qr" type="button" data-label="支付宝" aria-label="放大支付宝收款码">
+          <img src="assets/sponsor/alipay.jpg" alt="支付宝收款码" loading="lazy" decoding="async">
+          <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg></span>
+        </button>
+      </figure>
+
+      <figure class="card" data-i="1" style="--accent:#07C160">
+        <div class="card-head">
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.4"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.4"/><path d="M14.5 14.5h3v3h-3z"/><path d="M20.5 14.5v6h-6"/></svg><span data-slot="chip">微信</span></span>
+        </div>
+        <button class="qr" type="button" data-label="微信" aria-label="放大微信收款码">
+          <img src="assets/sponsor/wechat.jpg" alt="微信收款码" loading="lazy" decoding="async">
+          <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/></svg></span>
+        </button>
+      </figure>
+
+        <a class="link" style="--accent:#0070BA" href="https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4" target="_blank" rel="noopener noreferrer">
+          <div class="card-head">
+            <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5"/></svg><span>PayPal</span></span>
+          </div>
+          <span class="link-body">
+            <img class="link-qr" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNyAzNyIgd2lkdGg9IjU5MiIgaGVpZ2h0PSI1OTIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHJlY3Qgd2lkdGg9IjM3IiBoZWlnaHQ9IjM3IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTIgMmg3djFoLTd6TTEwIDJoMnYxaC0yek0yMCAyaDF2MWgtMXpNMjQgMmgxdjFoLTF6TTI4IDJoN3YxaC03ek0yIDNoMXYxaC0xek04IDNoMXYxaC0xek0xMCAzaDF2MWgtMXpNMTggM2gydjFoLTJ6TTIxIDNoMXYxaC0xek0yMyAzaDJ2MWgtMnpNMjYgM2gxdjFoLTF6TTI4IDNoMXYxaC0xek0zNCAzaDF2MWgtMXpNMiA0aDF2MWgtMXpNNCA0aDN2MWgtM3pNOCA0aDF2MWgtMXpNMTAgNGgydjFoLTJ6TTEzIDRoMnYxaC0yek0xNyA0aDR2MWgtNHpNMjIgNGgzdjFoLTN6TTI2IDRoMXYxaC0xek0yOCA0aDF2MWgtMXpNMzAgNGgzdjFoLTN6TTM0IDRoMXYxaC0xek0yIDVoMXYxaC0xek00IDVoM3YxaC0zek04IDVoMXYxaC0xek0xMSA1aDF2MWgtMXpNMjEgNWgxdjFoLTF6TTI2IDVoMXYxaC0xek0yOCA1aDF2MWgtMXpNMzAgNWgzdjFoLTN6TTM0IDVoMXYxaC0xek0yIDZoMXYxaC0xek00IDZoM3YxaC0zek04IDZoMXYxaC0xek0xMCA2aDR2MWgtNHpNMTUgNmgzdjFoLTN6TTIwIDZoMXYxaC0xek0yMiA2aDJ2MWgtMnpNMjUgNmgxdjFoLTF6TTI4IDZoMXYxaC0xek0zMCA2aDN2MWgtM3pNMzQgNmgxdjFoLTF6TTIgN2gxdjFoLTF6TTggN2gxdjFoLTF6TTEzIDdoMnYxaC0yek0xOSA3aDF2MWgtMXpNMjIgN2gxdjFoLTF6TTI0IDdoM3YxaC0zek0yOCA3aDF2MWgtMXpNMzQgN2gxdjFoLTF6TTIgOGg3djFoLTd6TTEwIDhoMXYxaC0xek0xMiA4aDF2MWgtMXpNMTQgOGgxdjFoLTF6TTE2IDhoMXYxaC0xek0xOCA4aDF2MWgtMXpNMjAgOGgxdjFoLTF6TTIyIDhoMXYxaC0xek0yNCA4aDF2MWgtMXpNMjYgOGgxdjFoLTF6TTI4IDhoN3YxaC03ek0xMSA5aDF2MWgtMXpNMTUgOWgxdjFoLTF6TTIxIDloMnYxaC0yek0yNCA5aDJ2MWgtMnpNMiAxMGgxdjFoLTF6TTUgMTBoMTB2MWgtMTB6TTE2IDEwaDZ2MWgtNnpNMjcgMTBoMXYxaC0xek0zMCAxMGgxdjFoLTF6TTMyIDEwaDN2MWgtM3pNMiAxMWgxdjFoLTF6TTUgMTFoMXYxaC0xek03IDExaDF2MWgtMXpNOSAxMWgxdjFoLTF6TTExIDExaDN2MWgtM3pNMTYgMTFoMnYxaC0yek0yMCAxMWgydjFoLTJ6TTIzIDExaDF2MWgtMXpNMjUgMTFoMXYxaC0xek0zMCAxMWg0djFoLTR6TTIgMTJoMXYxaC0xek00IDEyaDF2MWgtMXpNNyAxMmgydjFoLTJ6TTEyIDEyaDF2MWgtMXpNMTQgMTJoMXYxaC0xek0xNiAxMmgydjFoLTJ6TTE5IDEyaDJ2MWgtMnpNMjUgMTJoMnYxaC0yek0yOCAxMmgxdjFoLTF6TTMwIDEyaDV2MWgtNXpNMiAxM2gxdjFoLTF6TTUgMTNoMnYxaC0yek05IDEzaDF2MWgtMXpNMTEgMTNoNHYxaC00ek0xNiAxM2gxdjFoLTF6TTE4IDEzaDJ2MWgtMnpNMjEgMTNoMXYxaC0xek0yOCAxM2gydjFoLTJ6TTMyIDEzaDF2MWgtMXpNMzQgMTNoMXYxaC0xek0yIDE0aDF2MWgtMXpNNCAxNGgzdjFoLTN6TTggMTRoMXYxaC0xek0xMCAxNGgxdjFoLTF6TTE1IDE0aDl2MWgtOXpNMjYgMTRoMXYxaC0xek0yOCAxNGgxdjFoLTF6TTMwIDE0aDF2MWgtMXpNMiAxNWgydjFoLTJ6TTYgMTVoMnYxaC0yek05IDE1aDJ2MWgtMnpNMTMgMTVoMXYxaC0xek0xNSAxNWgxdjFoLTF6TTE4IDE1aDJ2MWgtMnpNMjEgMTVoMXYxaC0xek0yMyAxNWgydjFoLTJ6TTI3IDE1aDN2MWgtM3pNMzEgMTVoMnYxaC0yek0yIDE2aDN2MWgtM3pNNiAxNmgxdjFoLTF6TTggMTZoMXYxaC0xek0xMCAxNmg0djFoLTR6TTE1IDE2aDJ2MWgtMnpNMTggMTZoMnYxaC0yek0yMyAxNmgydjFoLTJ6TTI4IDE2aDJ2MWgtMnpNMzIgMTZoMXYxaC0xek0yIDE3aDJ2MWgtMnpNNSAxN2gxdjFoLTF6TTcgMTdoMXYxaC0xek0xMiAxN2g2djFoLTZ6TTIxIDE3aDF2MWgtMXpNMjUgMTdoMXYxaC0xek0yNyAxN2gxdjFoLTF6TTI5IDE3aDJ2MWgtMnpNMzIgMTdoMXYxaC0xek0zNCAxN2gxdjFoLTF6TTIgMThoMXYxaC0xek02IDE4aDN2MWgtM3pNMTIgMThoMXYxaC0xek0xNCAxOGgxdjFoLTF6TTE2IDE4aDF2MWgtMXpNMTggMThoMXYxaC0xek0yMSAxOGgydjFoLTJ6TTI0IDE4aDh2MWgtOHpNMiAxOWgxdjFoLTF6TTQgMTloM3YxaC0zek05IDE5aDN2MWgtM3pNMTMgMTloM3YxaC0zek0xNyAxOWgxdjFoLTF6TTIwIDE5aDN2MWgtM3pNMjYgMTloM3YxaC0zek0zMCAxOWgxdjFoLTF6TTMyIDE5aDF2MWgtMXpNMzQgMTloMXYxaC0xek0yIDIwaDN2MWgtM3pNOCAyMGgydjFoLTJ6TTEzIDIwaDF2MWgtMXpNMTUgMjBoM3YxaC0zek0yMSAyMGgzdjFoLTN6TTI1IDIwaDF2MWgtMXpNMjkgMjBoMXYxaC0xek0zMSAyMGgydjFoLTJ6TTM0IDIwaDF2MWgtMXpNMiAyMWg2djFoLTZ6TTkgMjFoMXYxaC0xek0xMyAyMWgxdjFoLTF6TTE1IDIxaDF2MWgtMXpNMTcgMjFoNHYxaC00ek0yNCAyMWgydjFoLTJ6TTI4IDIxaDF2MWgtMXpNMzAgMjFoM3YxaC0zek0zNCAyMWgxdjFoLTF6TTIgMjJoMXYxaC0xek00IDIyaDJ2MWgtMnpNNyAyMmg2djFoLTZ6TTE1IDIyaDJ2MWgtMnpNMjIgMjJoMXYxaC0xek0yNCAyMmgxdjFoLTF6TTMxIDIyaDF2MWgtMXpNMiAyM2gxdjFoLTF6TTYgMjNoMnYxaC0yek0xMCAyM2gydjFoLTJ6TTEzIDIzaDF2MWgtMXpNMTUgMjNoMXYxaC0xek0xOCAyM2gzdjFoLTN6TTIyIDIzaDF2MWgtMXpNMjUgMjNoMnYxaC0yek0yOCAyM2gxdjFoLTF6TTMwIDIzaDJ2MWgtMnpNMiAyNGgxdjFoLTF6TTYgMjRoMXYxaC0xek04IDI0aDF2MWgtMXpNMTIgMjRoMnYxaC0yek0xNiAyNGgzdjFoLTN6TTIzIDI0aDF2MWgtMXpNMjUgMjRoNnYxaC02ek0zMyAyNGgydjFoLTJ6TTIgMjVoMXYxaC0xek00IDI1aDN2MWgtM3pNMTAgMjVoMnYxaC0yek0xNSAyNWgydjFoLTJ6TTE4IDI1aDN2MWgtM3pNMjQgMjVoMXYxaC0xek0yNyAyNWgzdjFoLTN6TTMyIDI1aDF2MWgtMXpNMiAyNmgydjFoLTJ6TTcgMjZoMnYxaC0yek0xMCAyNmgxdjFoLTF6TTEyIDI2aDJ2MWgtMnpNMTYgMjZoM3YxaC0zek0yMSAyNmgydjFoLTJ6TTI1IDI2aDZ2MWgtNnpNMzIgMjZoM3YxaC0zek0xMCAyN2gzdjFoLTN6TTE1IDI3aDN2MWgtM3pNMjAgMjdoMXYxaC0xek0yMiAyN2gxdjFoLTF6TTI1IDI3aDJ2MWgtMnpNMzAgMjdoMXYxaC0xek0zMiAyN2gydjFoLTJ6TTIgMjhoN3YxaC03ek0xMCAyOGgxdjFoLTF6TTEyIDI4aDF2MWgtMXpNMTYgMjhoM3YxaC0zek0yMCAyOGgydjFoLTJ6TTIzIDI4aDF2MWgtMXpNMjUgMjhoMnYxaC0yek0yOCAyOGgxdjFoLTF6TTMwIDI4aDF2MWgtMXpNMzIgMjhoMXYxaC0xek0yIDI5aDF2MWgtMXpNOCAyOWgxdjFoLTF6TTEwIDI5aDF2MWgtMXpNMTMgMjloMXYxaC0xek0xNSAyOWgydjFoLTJ6TTE4IDI5aDF2MWgtMXpNMjQgMjloM3YxaC0zek0zMCAyOWg1djFoLTV6TTIgMzBoMXYxaC0xek00IDMwaDN2MWgtM3pNOCAzMGgxdjFoLTF6TTEwIDMwaDF2MWgtMXpNMTMgMzBoMnYxaC0yek0xNyAzMGgxdjFoLTF6TTE5IDMwaDV2MWgtNXpNMjUgMzBoNnYxaC02ek0zMyAzMGgxdjFoLTF6TTIgMzFoMXYxaC0xek00IDMxaDN2MWgtM3pNOCAzMWgxdjFoLTF6TTEwIDMxaDF2MWgtMXpNMTIgMzFoMXYxaC0xek0xNiAzMWgxdjFoLTF6TTE5IDMxaDF2MWgtMXpNMjIgMzFoMXYxaC0xek0yNCAzMWgxdjFoLTF6TTI3IDMxaDF2MWgtMXpNMjkgMzFoMXYxaC0xek0zMSAzMWg0djFoLTR6TTIgMzJoMXYxaC0xek00IDMyaDN2MWgtM3pNOCAzMmgxdjFoLTF6TTEzIDMyaDF2MWgtMXpNMTUgMzJoMnYxaC0yek0xOCAzMmgxdjFoLTF6TTIwIDMyaDF2MWgtMXpNMjIgMzJoM3YxaC0zek0yNiAzMmgxdjFoLTF6TTI5IDMyaDJ2MWgtMnpNMzMgMzJoMnYxaC0yek0yIDMzaDF2MWgtMXpNOCAzM2gxdjFoLTF6TTExIDMzaDR2MWgtNHpNMTYgMzNoM3YxaC0zek0yNCAzM2gxdjFoLTF6TTI2IDMzaDF2MWgtMXpNMjggMzNoN3YxaC03ek0yIDM0aDd2MWgtN3pNMTAgMzRoMXYxaC0xek0xMiAzNGgxdjFoLTF6TTE0IDM0aDJ2MWgtMnpNMTkgMzRoMXYxaC0xek0yNSAzNGgydjFoLTJ6TTI5IDM0aDJ2MWgtMnpNMzIgMzRoMXYxaC0xeiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==" alt="" loading="lazy" decoding="async">
+            <span class="link-text">
+              <span class="link-name">PayPal</span>
+              <span class="link-sub">www.paypal.com/ncp/payment/SN6RMEF7FNKU4</span>
+            </span>
+          </span>
+        </a>
+    </section>
+
+    <p class="note" data-slot="note">中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。</p>
+  </div>
+</div>
+
+<div class="lightbox" hidden>
+  <button class="lb-close" type="button" aria-label="关闭放大图">×</button>
+  <img alt="">
+  <p class="lb-cap"></p>
+</div>
+
+<script>
+var SPONSOR = {"defaultLang":"zh","langs":["zh","en"],"title":{"zh":"赞助支持 · iskill-generate-sponsors","en":"Sponsor · iskill-generate-sponsors"},"tagline":{"zh":"如果这个技能帮你省下了时间，可以请我喝杯咖啡 ☕","en":"If this skill saved you some time, you can buy me a coffee ☕"},"note":{"zh":"中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。","en":"Scan the QR codes if you are in mainland China (Alipay / WeChat); PayPal is easier overseas."},"foot":{"zh":"由 <a href=\"https://github.com/aispin/iskill-generate-sponsors\" target=\"_blank\" rel=\"noopener noreferrer\">iskill-generate-sponsors<\/a> 生成 · 2026-10-09","en":"Generated by <a href=\"https://github.com/aispin/iskill-generate-sponsors\" target=\"_blank\" rel=\"noopener noreferrer\">iskill-generate-sponsors<\/a> · 2026-10-09"},"generatedAt":"2026-10-09","generator":{"name":"iskill-generate-sponsors","url":"https://github.com/aispin/iskill-generate-sponsors"},"ui":{"zh":{"badge":"赞助支持","hint":"点击放大","linksTitle":"其他支持方式","altOf":"{x}收款码","zoomOf":"放大{x}收款码","themeAria":"切换深色 / 浅色","langAria":"切换中文 / English","closeAria":"关闭放大图","popAria":"打开赞助弹窗","popCloseAria":"关闭赞助弹窗","popSecTitle":"也可以点开看","popSecHint":"点下面的按钮，全部赞助方式会在弹层里重新排一遍。","langShort":"EN","empty":"还没有配置外部赞助链接。加一个 <code>--paypal https://paypal.me/你的名字<\/code> 再来一次。"},"en":{"badge":"SPONSOR","hint":"Tap to enlarge","linksTitle":"Other ways to support","altOf":"{x} QR code","zoomOf":"Enlarge the {x} QR code","themeAria":"Toggle dark / light mode","langAria":"Switch between 中文 / English","closeAria":"Close","popAria":"Open sponsor popup","popCloseAria":"Close sponsor popup","popSecTitle":"Prefer a popup?","popSecHint":"Tap the button below to see every option in a focused overlay.","langShort":"中","empty":"No external sponsor links yet. Add one with <code>--paypal https://paypal.me/yourname<\/code>, then re-run."}},"qr":[{"key":"alipay","src":"assets/sponsor/alipay.jpg","accent":"#1677FF","label":{"zh":"支付宝","en":"Alipay"},"tip":{"zh":"打开支付宝「扫一扫」","en":"Scan with Alipay"}},{"key":"wechat","src":"assets/sponsor/wechat.jpg","accent":"#07C160","label":{"zh":"微信","en":"WeChat"},"tip":{"zh":"打开微信「扫一扫」","en":"Scan with WeChat"}}],"links":[{"label":"PayPal","sub":"www.paypal.com/ncp/payment/SN6RMEF7FNKU4","url":"https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4","accent":"#0070BA","qr":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNyAzNyIgd2lkdGg9IjU5MiIgaGVpZ2h0PSI1OTIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHJlY3Qgd2lkdGg9IjM3IiBoZWlnaHQ9IjM3IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTIgMmg3djFoLTd6TTEwIDJoMnYxaC0yek0yMCAyaDF2MWgtMXpNMjQgMmgxdjFoLTF6TTI4IDJoN3YxaC03ek0yIDNoMXYxaC0xek04IDNoMXYxaC0xek0xMCAzaDF2MWgtMXpNMTggM2gydjFoLTJ6TTIxIDNoMXYxaC0xek0yMyAzaDJ2MWgtMnpNMjYgM2gxdjFoLTF6TTI4IDNoMXYxaC0xek0zNCAzaDF2MWgtMXpNMiA0aDF2MWgtMXpNNCA0aDN2MWgtM3pNOCA0aDF2MWgtMXpNMTAgNGgydjFoLTJ6TTEzIDRoMnYxaC0yek0xNyA0aDR2MWgtNHpNMjIgNGgzdjFoLTN6TTI2IDRoMXYxaC0xek0yOCA0aDF2MWgtMXpNMzAgNGgzdjFoLTN6TTM0IDRoMXYxaC0xek0yIDVoMXYxaC0xek00IDVoM3YxaC0zek04IDVoMXYxaC0xek0xMSA1aDF2MWgtMXpNMjEgNWgxdjFoLTF6TTI2IDVoMXYxaC0xek0yOCA1aDF2MWgtMXpNMzAgNWgzdjFoLTN6TTM0IDVoMXYxaC0xek0yIDZoMXYxaC0xek00IDZoM3YxaC0zek04IDZoMXYxaC0xek0xMCA2aDR2MWgtNHpNMTUgNmgzdjFoLTN6TTIwIDZoMXYxaC0xek0yMiA2aDJ2MWgtMnpNMjUgNmgxdjFoLTF6TTI4IDZoMXYxaC0xek0zMCA2aDN2MWgtM3pNMzQgNmgxdjFoLTF6TTIgN2gxdjFoLTF6TTggN2gxdjFoLTF6TTEzIDdoMnYxaC0yek0xOSA3aDF2MWgtMXpNMjIgN2gxdjFoLTF6TTI0IDdoM3YxaC0zek0yOCA3aDF2MWgtMXpNMzQgN2gxdjFoLTF6TTIgOGg3djFoLTd6TTEwIDhoMXYxaC0xek0xMiA4aDF2MWgtMXpNMTQgOGgxdjFoLTF6TTE2IDhoMXYxaC0xek0xOCA4aDF2MWgtMXpNMjAgOGgxdjFoLTF6TTIyIDhoMXYxaC0xek0yNCA4aDF2MWgtMXpNMjYgOGgxdjFoLTF6TTI4IDhoN3YxaC03ek0xMSA5aDF2MWgtMXpNMTUgOWgxdjFoLTF6TTIxIDloMnYxaC0yek0yNCA5aDJ2MWgtMnpNMiAxMGgxdjFoLTF6TTUgMTBoMTB2MWgtMTB6TTE2IDEwaDZ2MWgtNnpNMjcgMTBoMXYxaC0xek0zMCAxMGgxdjFoLTF6TTMyIDEwaDN2MWgtM3pNMiAxMWgxdjFoLTF6TTUgMTFoMXYxaC0xek03IDExaDF2MWgtMXpNOSAxMWgxdjFoLTF6TTExIDExaDN2MWgtM3pNMTYgMTFoMnYxaC0yek0yMCAxMWgydjFoLTJ6TTIzIDExaDF2MWgtMXpNMjUgMTFoMXYxaC0xek0zMCAxMWg0djFoLTR6TTIgMTJoMXYxaC0xek00IDEyaDF2MWgtMXpNNyAxMmgydjFoLTJ6TTEyIDEyaDF2MWgtMXpNMTQgMTJoMXYxaC0xek0xNiAxMmgydjFoLTJ6TTE5IDEyaDJ2MWgtMnpNMjUgMTJoMnYxaC0yek0yOCAxMmgxdjFoLTF6TTMwIDEyaDV2MWgtNXpNMiAxM2gxdjFoLTF6TTUgMTNoMnYxaC0yek05IDEzaDF2MWgtMXpNMTEgMTNoNHYxaC00ek0xNiAxM2gxdjFoLTF6TTE4IDEzaDJ2MWgtMnpNMjEgMTNoMXYxaC0xek0yOCAxM2gydjFoLTJ6TTMyIDEzaDF2MWgtMXpNMzQgMTNoMXYxaC0xek0yIDE0aDF2MWgtMXpNNCAxNGgzdjFoLTN6TTggMTRoMXYxaC0xek0xMCAxNGgxdjFoLTF6TTE1IDE0aDl2MWgtOXpNMjYgMTRoMXYxaC0xek0yOCAxNGgxdjFoLTF6TTMwIDE0aDF2MWgtMXpNMiAxNWgydjFoLTJ6TTYgMTVoMnYxaC0yek05IDE1aDJ2MWgtMnpNMTMgMTVoMXYxaC0xek0xNSAxNWgxdjFoLTF6TTE4IDE1aDJ2MWgtMnpNMjEgMTVoMXYxaC0xek0yMyAxNWgydjFoLTJ6TTI3IDE1aDN2MWgtM3pNMzEgMTVoMnYxaC0yek0yIDE2aDN2MWgtM3pNNiAxNmgxdjFoLTF6TTggMTZoMXYxaC0xek0xMCAxNmg0djFoLTR6TTE1IDE2aDJ2MWgtMnpNMTggMTZoMnYxaC0yek0yMyAxNmgydjFoLTJ6TTI4IDE2aDJ2MWgtMnpNMzIgMTZoMXYxaC0xek0yIDE3aDJ2MWgtMnpNNSAxN2gxdjFoLTF6TTcgMTdoMXYxaC0xek0xMiAxN2g2djFoLTZ6TTIxIDE3aDF2MWgtMXpNMjUgMTdoMXYxaC0xek0yNyAxN2gxdjFoLTF6TTI5IDE3aDJ2MWgtMnpNMzIgMTdoMXYxaC0xek0zNCAxN2gxdjFoLTF6TTIgMThoMXYxaC0xek02IDE4aDN2MWgtM3pNMTIgMThoMXYxaC0xek0xNCAxOGgxdjFoLTF6TTE2IDE4aDF2MWgtMXpNMTggMThoMXYxaC0xek0yMSAxOGgydjFoLTJ6TTI0IDE4aDh2MWgtOHpNMiAxOWgxdjFoLTF6TTQgMTloM3YxaC0zek05IDE5aDN2MWgtM3pNMTMgMTloM3YxaC0zek0xNyAxOWgxdjFoLTF6TTIwIDE5aDN2MWgtM3pNMjYgMTloM3YxaC0zek0zMCAxOWgxdjFoLTF6TTMyIDE5aDF2MWgtMXpNMzQgMTloMXYxaC0xek0yIDIwaDN2MWgtM3pNOCAyMGgydjFoLTJ6TTEzIDIwaDF2MWgtMXpNMTUgMjBoM3YxaC0zek0yMSAyMGgzdjFoLTN6TTI1IDIwaDF2MWgtMXpNMjkgMjBoMXYxaC0xek0zMSAyMGgydjFoLTJ6TTM0IDIwaDF2MWgtMXpNMiAyMWg2djFoLTZ6TTkgMjFoMXYxaC0xek0xMyAyMWgxdjFoLTF6TTE1IDIxaDF2MWgtMXpNMTcgMjFoNHYxaC00ek0yNCAyMWgydjFoLTJ6TTI4IDIxaDF2MWgtMXpNMzAgMjFoM3YxaC0zek0zNCAyMWgxdjFoLTF6TTIgMjJoMXYxaC0xek00IDIyaDJ2MWgtMnpNNyAyMmg2djFoLTZ6TTE1IDIyaDJ2MWgtMnpNMjIgMjJoMXYxaC0xek0yNCAyMmgxdjFoLTF6TTMxIDIyaDF2MWgtMXpNMiAyM2gxdjFoLTF6TTYgMjNoMnYxaC0yek0xMCAyM2gydjFoLTJ6TTEzIDIzaDF2MWgtMXpNMTUgMjNoMXYxaC0xek0xOCAyM2gzdjFoLTN6TTIyIDIzaDF2MWgtMXpNMjUgMjNoMnYxaC0yek0yOCAyM2gxdjFoLTF6TTMwIDIzaDJ2MWgtMnpNMiAyNGgxdjFoLTF6TTYgMjRoMXYxaC0xek04IDI0aDF2MWgtMXpNMTIgMjRoMnYxaC0yek0xNiAyNGgzdjFoLTN6TTIzIDI0aDF2MWgtMXpNMjUgMjRoNnYxaC02ek0zMyAyNGgydjFoLTJ6TTIgMjVoMXYxaC0xek00IDI1aDN2MWgtM3pNMTAgMjVoMnYxaC0yek0xNSAyNWgydjFoLTJ6TTE4IDI1aDN2MWgtM3pNMjQgMjVoMXYxaC0xek0yNyAyNWgzdjFoLTN6TTMyIDI1aDF2MWgtMXpNMiAyNmgydjFoLTJ6TTcgMjZoMnYxaC0yek0xMCAyNmgxdjFoLTF6TTEyIDI2aDJ2MWgtMnpNMTYgMjZoM3YxaC0zek0yMSAyNmgydjFoLTJ6TTI1IDI2aDZ2MWgtNnpNMzIgMjZoM3YxaC0zek0xMCAyN2gzdjFoLTN6TTE1IDI3aDN2MWgtM3pNMjAgMjdoMXYxaC0xek0yMiAyN2gxdjFoLTF6TTI1IDI3aDJ2MWgtMnpNMzAgMjdoMXYxaC0xek0zMiAyN2gydjFoLTJ6TTIgMjhoN3YxaC03ek0xMCAyOGgxdjFoLTF6TTEyIDI4aDF2MWgtMXpNMTYgMjhoM3YxaC0zek0yMCAyOGgydjFoLTJ6TTIzIDI4aDF2MWgtMXpNMjUgMjhoMnYxaC0yek0yOCAyOGgxdjFoLTF6TTMwIDI4aDF2MWgtMXpNMzIgMjhoMXYxaC0xek0yIDI5aDF2MWgtMXpNOCAyOWgxdjFoLTF6TTEwIDI5aDF2MWgtMXpNMTMgMjloMXYxaC0xek0xNSAyOWgydjFoLTJ6TTE4IDI5aDF2MWgtMXpNMjQgMjloM3YxaC0zek0zMCAyOWg1djFoLTV6TTIgMzBoMXYxaC0xek00IDMwaDN2MWgtM3pNOCAzMGgxdjFoLTF6TTEwIDMwaDF2MWgtMXpNMTMgMzBoMnYxaC0yek0xNyAzMGgxdjFoLTF6TTE5IDMwaDV2MWgtNXpNMjUgMzBoNnYxaC02ek0zMyAzMGgxdjFoLTF6TTIgMzFoMXYxaC0xek00IDMxaDN2MWgtM3pNOCAzMWgxdjFoLTF6TTEwIDMxaDF2MWgtMXpNMTIgMzFoMXYxaC0xek0xNiAzMWgxdjFoLTF6TTE5IDMxaDF2MWgtMXpNMjIgMzFoMXYxaC0xek0yNCAzMWgxdjFoLTF6TTI3IDMxaDF2MWgtMXpNMjkgMzFoMXYxaC0xek0zMSAzMWg0djFoLTR6TTIgMzJoMXYxaC0xek00IDMyaDN2MWgtM3pNOCAzMmgxdjFoLTF6TTEzIDMyaDF2MWgtMXpNMTUgMzJoMnYxaC0yek0xOCAzMmgxdjFoLTF6TTIwIDMyaDF2MWgtMXpNMjIgMzJoM3YxaC0zek0yNiAzMmgxdjFoLTF6TTI5IDMyaDJ2MWgtMnpNMzMgMzJoMnYxaC0yek0yIDMzaDF2MWgtMXpNOCAzM2gxdjFoLTF6TTExIDMzaDR2MWgtNHpNMTYgMzNoM3YxaC0zek0yNCAzM2gxdjFoLTF6TTI2IDMzaDF2MWgtMXpNMjggMzNoN3YxaC03ek0yIDM0aDd2MWgtN3pNMTAgMzRoMXYxaC0xek0xMiAzNGgxdjFoLTF6TTE0IDM0aDJ2MWgtMnpNMTkgMzRoMXYxaC0xek0yNSAzNGgydjFoLTJ6TTI5IDM0aDJ2MWgtMnpNMzIgMzRoMXYxaC0xeiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg=="}]};
+(function () {
+  var root = document.documentElement;
+  var lb = document.querySelector('.lightbox');
+  var img = lb.querySelector('img');
+  var cap = lb.querySelector('.lb-cap');
+
+  function pick(v, lang) {
+    if (v == null) return '';
+    if (typeof v !== 'object' || Array.isArray(v)) return String(v);
+    if (v[lang] != null) return v[lang];
+    return v.zh != null ? v.zh : (v.en != null ? v.en : '');
+  }
+  function fill(tpl, x) { return String(tpl == null ? '{x}' : tpl).replace('{x}', x); }
+  function all(sel, fn) { document.querySelectorAll(sel).forEach(fn); }
+
+  function apply(lang) {
+    var t = SPONSOR.ui[lang] || SPONSOR.ui.zh;
+    root.lang = lang === 'en' ? 'en' : 'zh-CN';
+    // data-lang 给 CSS 用（如需按语言切换字体/间距），与 data-theme 同一套路
+    root.setAttribute('data-lang', lang);
+    document.title = pick(SPONSOR.title, lang);
+    all('[data-slot="title"]',      function (e) { e.textContent = pick(SPONSOR.title, lang); });
+    all('[data-slot="tagline"]',    function (e) { e.textContent = pick(SPONSOR.tagline, lang); });
+    all('[data-slot="badge"]',      function (e) { e.textContent = t.badge; });
+    all('[data-slot="links-title"]',function (e) { e.textContent = t.linksTitle; });
+    all('[data-slot="note"]',       function (e) { e.textContent = pick(SPONSOR.note, lang); });
+    all('[data-slot="foot"]',       function (e) { e.innerHTML = pick(SPONSOR.foot, lang); });
+    all('.empty',                   function (e) { e.innerHTML = t.empty; });
+    all('.hint',                    function (e) { e.textContent = t.hint; });
+    all('.lang-short',              function (e) { e.textContent = t.langShort; });
+    all('.theme-toggle',            function (e) { e.setAttribute('aria-label', t.themeAria); e.setAttribute('title', t.themeAria); });
+    all('.lang-toggle',             function (e) { e.setAttribute('aria-label', t.langAria); e.setAttribute('title', t.langAria); });
+    all('.lb-close',                function (e) { e.setAttribute('aria-label', t.closeAria); });
+    all('[data-slot="pop-label"]',  function (e) { e.textContent = t.badge; });
+    all('[data-slot="pop-sec-title"]', function (e) { e.textContent = t.popSecTitle; });
+    all('[data-slot="pop-sec-hint"]',  function (e) { e.textContent = t.popSecHint; });
+    all('.sponsor-btn',             function (e) { e.setAttribute('aria-label', t.popAria); });
+    all('.pop-close',               function (e) { e.setAttribute('aria-label', t.popCloseAria); });
+
+    all('.card[data-i]', function (c) {
+      var q = SPONSOR.qr[+c.dataset.i];
+      if (!q) return;
+      var label = pick(q.label, lang);
+      var chip = c.querySelector('[data-slot="chip"]');
+      var capL = c.querySelector('[data-slot="cap-label"]');
+      var capT = c.querySelector('[data-slot="cap-tip"]');
+      if (chip) chip.textContent = label;
+      if (capL) capL.textContent = label;
+      if (capT) capT.textContent = pick(q.tip, lang);
+      var im = c.querySelector('img');
+      if (im) im.alt = fill(t.altOf, label);
+      var b = c.querySelector('.qr');
+      if (b) { b.dataset.label = label; b.setAttribute('aria-label', fill(t.zoomOf, label)); }
+    });
+  }
+
+  var langs = SPONSOR.langs && SPONSOR.langs.length ? SPONSOR.langs : ['zh', 'en'];
+  var lang = root.getAttribute('data-lang') || SPONSOR.defaultLang || 'zh';
+  if (langs.indexOf(lang) < 0) lang = langs[0];
+  apply(lang);   // 首屏已是默认语言，这里只负责纠偏（比如 #lang=en 打开）
+
+  /* ── 灯箱 ── */
+  function open(src, label, alt) {
+    img.src = src; img.alt = alt; cap.textContent = label;
+    lb.hidden = false; document.body.style.overflow = 'hidden';
+  }
+  function close() { lb.hidden = true; img.src = ''; document.body.style.overflow = ''; }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.qr') : null;
+    if (b) { var im = b.querySelector('img'); open(im.currentSrc || im.src, b.dataset.label, im.alt); }
+  });
+  lb.addEventListener('click', function (e) {
+    if (e.target === lb || e.target === img) { close(); return; }
+    var c = e.target.closest ? e.target.closest('.lb-close') : null;
+    if (c) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!lb.hidden) close();                       // 灯箱开着先关灯箱
+    else if (pop && !pop.hidden) popClose();       // 其次关弹层
+  });
+
+  /* ── 弹层入口（页面第二段的按钮）→ 弹层 ── */
+  var pop = document.querySelector('.pop');
+  var popBtn = document.querySelector('.sponsor-btn');
+  function popOpen() { pop.hidden = false; if (popBtn) popBtn.style.visibility = 'hidden'; document.body.style.overflow = 'hidden'; }
+  function popClose() { pop.hidden = true; if (popBtn) popBtn.style.visibility = ''; if (lb.hidden) document.body.style.overflow = ''; }
+  if (popBtn && pop) {
+    popBtn.addEventListener('click', popOpen);
+    pop.addEventListener('click', function (e) {
+      if (e.target === pop || (e.target.closest && e.target.closest('.pop-close'))) popClose();
+    });
+    /* URL 带 #pop=1 直接打开弹层 —— 与 #theme= / #lang= 同一套路：
+       分享链接、无头截图都能复现「弹层打开」这一态（否则文档样本只能手工截）。
+       ⚠️ 必须**同时**监听 hashchange：有的自动化工具（agent-browser 的 open）
+       是先导航、再把 fragment 补上，脚本执行那一刻 location.hash 还是空的 ——
+       只判一次的话，#pop=1 会静默失效（实测踩过）。
+       注意：本注释在生成器的模板字符串里，别写反引号。 */
+    if (/(^|[#&])pop=1/.test(location.hash || '')) popOpen();
+    addEventListener('hashchange', function () {
+      if (/(^|[#&])pop=1/.test(location.hash || '')) popOpen();
+    });
+  }
+
+  /* ── 主题切换 ── */
+  var tBtn = document.querySelector('.theme-toggle');
+  if (tBtn) tBtn.addEventListener('click', function () {
+    var now = root.getAttribute('data-theme');
+    if (now !== 'light' && now !== 'dark') {
+      now = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    var next = now === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('sponsor-theme', next); } catch (e) {}
+    postSync(next);
+  });
+
+  /* ── 语言切换 ── */
+  var lBtn = document.querySelector('.lang-toggle');
+  if (lBtn) lBtn.addEventListener('click', function () {
+    lang = langs[(langs.indexOf(lang) + 1) % langs.length];
+    apply(lang);
+    try { localStorage.setItem('sponsor-lang', lang); } catch (e) {}
+    postSync();
+  });
+
+  /* ── 被嵌入时（如 usage.html 的实时预览 iframe）与父页双向同步 ──
+     收到父页的 sponsorSync：应用语言 / 主题（不回写 localStorage，父页已写），
+     然后回 ack —— 父页据此决定要不要走「重载 iframe」的兜底。 */
+  function postSync(theme) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          sponsorSync: 1,
+          sponsorLang: lang,
+          sponsorTheme: theme || root.getAttribute('data-theme') || ''
+        }, '*');
+      }
+    } catch (e) {}
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data || {};
+    if (!d.sponsorSync) return;
+    if ((d.sponsorLang === 'zh' || d.sponsorLang === 'en') && langs.indexOf(d.sponsorLang) >= 0) {
+      lang = d.sponsorLang;
+      apply(lang);
+    }
+    if (d.sponsorTheme === 'light' || d.sponsorTheme === 'dark') {
+      root.setAttribute('data-theme', d.sponsorTheme);
+    }
+    try { e.source.postMessage({ sponsorAck: 1 }, '*'); } catch (err) {}
+  });
+})();
+</script>
+</body>
+</html>

@@ -24,7 +24,7 @@
   },
   "qrDir": ".github/sponsor",
   "qr": [
-    { "key": "alipay", "label": "支付宝", "src": "alipay.jpg" },
-    { "key": "wechat", "label": "微信", "src": "wechat.jpg" }
+    { "key": "alipay", "label": "支付宝", "src": "/Volumes/Pluto/XDownloads/我的照片/收款码/zeo-payment-alipay.JPG" },
+    { "key": "wechat", "label": "微信", "src": "/Volumes/Pluto/XDownloads/我的照片/收款码/zeo-payment-wechat.JPG" }
   ]
 }
