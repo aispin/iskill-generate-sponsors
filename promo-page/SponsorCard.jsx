@@ -234,7 +234,8 @@ const CSS = `
 .sp-1qs5qt .sp-zoom svg{width:13px;height:13px}
 .sp-1qs5qt .sp-qr:hover .sp-zoom{opacity:1}
 
-/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
+/* 链接卡与码卡同构：卡壳同款（同宽/同 accent 条/chip 头），
+   主体 = 链接地址生成的大幅二维码，与码卡同一款白底圆角容器（.sp-qr 同 padding/描边/圆角） */
 .sp-1qs5qt .sp-link{
   position:relative;margin:0;width:200px;max-width:100%;
   display:flex;flex-direction:column;gap:7px;
@@ -252,23 +253,16 @@ const CSS = `
 .sp-1qs5qt .sp-link:focus-visible{outline:2px solid var(--sp-accent);outline-offset:2px}
 .sp-1qs5qt .sp-link .sp-link-body{
   flex:1;min-height:0;
-  display:flex;align-items:center;gap:9px;
-  /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
-  background:
-    radial-gradient(130px 95px at 84% -12%, color-mix(in srgb, var(--sp-accent) 15%, transparent), transparent 70%),
-    radial-gradient(150px 110px at 8% 110%, color-mix(in srgb, var(--sp-accent) 10%, transparent), transparent 72%),
-    repeating-radial-gradient(circle at 108% -18%,
-      color-mix(in srgb, var(--sp-accent) 7%, transparent) 0 1.5px,
-      transparent 1.5px 13px),
-    var(--sp-qr-bg);
-  border:1px solid var(--sp-qr-line);border-radius:8px;
-  padding:7px;text-align:left;
-  /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
+  display:flex;align-items:center;justify-content:center;
+  padding:6px;margin:0;
+  background:var(--sp-qr-bg);border:1px solid var(--sp-qr-line);border-radius:8px;
+}
+.sp-1qs5qt .sp-link .sp-link-qr{display:block;width:100%;height:auto;border-radius:4px}
+/* 非 http(s) 链接无码可嵌：兜底为居中文字（容器仍与码面同款白底描边，文字固定深色） */
+.sp-1qs5qt .sp-link .sp-link-plain{
+  flex-direction:column;gap:3px;text-align:center;padding:8px;
   color:#0f1b2d;
 }
-/* 内嵌二维码 tile：白底独立描边，直接可扫；整卡是 <a>，点它即新窗口跳转 */
-.sp-1qs5qt .sp-link .sp-link-qr{flex:none;width:56px;height:56px;padding:3px;background:#fff;border:1px solid var(--sp-qr-line);border-radius:7px}
-.sp-1qs5qt .sp-link .sp-link-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
 .sp-1qs5qt .sp-link-name{font-weight:650;font-size:14px}
 .sp-1qs5qt .sp-link-sub{font-size:11px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-1qs5qt .sp-empty{flex-basis:100%;color:var(--sp-ink2);text-align:center}
@@ -459,13 +453,9 @@ export default function SponsorCard({
             <div className="sp-card-head">
               <span className="sp-chip"><Icon.Link /><span>{l.label}</span></span>
             </div>
-            <span className="sp-link-body">
-              {l.qr ? <img className="sp-link-qr" src={l.qr} alt="" width="56" height="56" loading="lazy" decoding="async" /> : null}
-              <span className="sp-link-text">
-                <span className="sp-link-name">{l.label}</span>
-                <span className="sp-link-sub">{l.sub}</span>
-              </span>
-            </span>
+            {l.qr
+              ? <span className="sp-link-body"><img className="sp-link-qr" src={l.qr} alt="" loading="lazy" decoding="async" /></span>
+              : <span className="sp-link-body sp-link-plain"><span className="sp-link-name">{l.label}</span><span className="sp-link-sub">{l.sub}</span></span>}
           </a>
         )) : (
           <p className="sp-empty" dangerouslySetInnerHTML={{ __html: t.empty }} />

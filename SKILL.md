@@ -394,7 +394,7 @@ Actions 方式（需 token 有 `workflow` scope）见 [`reference/pages-workflow
 ```
 
 实测（390×900，agent-browser 量）：卡片 **310px**、左右边距 **40 / 40**、码面 **284px**、
-chip 字号 **12.5px**；链接卡用 `aspect-ratio:6/5` 保持桌面那份比例（284×237）。
+chip 字号 **12.5px**；链接卡主体同为大幅码面（与码卡同构，见 sponsor-design.md），窄屏同款放大。
 改完记得重跑 `bash scripts/make-samples.sh` —— 文档里的窄屏样本必须跟着更新。
 
 ### `#pop=1` 直达弹层（截图 / 分享用）

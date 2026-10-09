@@ -540,8 +540,8 @@ function renderHtml(opt, qrList, model) {
           <div class="card-head">
             <span class="chip">${ICON.link}<span>${esc(l.label)}</span></span>
           </div>
-          <span class="link-body">
-            ${l.qr ? `<img class="link-qr" src="${l.qr}" alt="" width="56" height="56" loading="lazy" decoding="async">` : ''}
+          <span class="link-body${l.qr ? '' : ' link-plain'}">
+            ${l.qr ? `<img class="link-qr" src="${l.qr}" alt="" loading="lazy" decoding="async">` : ''}
             <span class="link-text">
               <span class="link-name">${esc(l.label)}</span>
               <span class="link-sub">${esc(l.sub)}</span>
@@ -950,7 +950,8 @@ function renderEmbed(opt, qrList, model) {
       ? MODEL.links.map(function (l) {
         return '<a class="link" style="--accent:' + esc(l.accent) + '" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">'
           + '<div class="card-head"><span class="chip">' + ICON.link + '<span>' + esc(l.label) + '</span></span></div>'
-          + '<span class="link-body">' + (l.qr ? '<img class="link-qr" src="' + l.qr + '" alt="" width="56" height="56" decoding="async">' : '')
+          + '<span class="link-body' + (l.qr ? '' : ' link-plain') + '">'
+          + (l.qr ? '<img class="link-qr" src="' + l.qr + '" alt="" decoding="async">' : '')
           + '<span class="link-text"><span class="link-name">' + esc(l.label) + '</span>'
           + '<span class="link-sub">' + esc(l.sub) + '</span></span></span></a>';
         }).join('')
@@ -1257,7 +1258,8 @@ body{
 .zoom svg{width:14px;height:14px}
 .qr:hover .zoom{opacity:1}
 
-/* 链接卡与码卡同构：顶部 chip（图标+名称），中间圆角方容器居中放 名称+链接 */
+/* 链接卡与码卡同构：卡壳同款（同宽/同 accent 条/chip 头），
+   主体 = 链接地址生成的大幅二维码，与码卡同一款白底圆角容器（.qr 同 padding/描边/圆角），卡高自然对齐 */
 .link{
   --accent:#10C8A1;
   position:relative;margin:0;width:200px;max-width:100%;
@@ -1276,28 +1278,22 @@ body{
 .link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .link-body{
   flex:1;min-height:0;
-  display:flex;align-items:center;gap:10px;
-  /* 纯 CSS 生成式底纹：角落两团品牌色柔光 + 同心细环（guilloché 质感），随渠道 accent 变色 */
-  background:
-    radial-gradient(140px 100px at 84% -12%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%),
-    radial-gradient(160px 120px at 8% 110%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%),
-    repeating-radial-gradient(circle at 108% -18%,
-      color-mix(in srgb, var(--accent) 7%, transparent) 0 1.5px,
-      transparent 1.5px 13px),
-    var(--qr-bg);
-  border:1px solid var(--qr-line);border-radius:10px;
-  padding:8px;text-align:left;
-  /* 容器恒为白底（与码面一致），文字固定深色，不随主题翻转 */
+  display:flex;align-items:center;justify-content:center;
+  padding:7px;margin:0;
+  background:var(--qr-bg);border:1px solid var(--qr-line);border-radius:10px;
+}
+.link-qr{display:block;width:100%;height:auto;border-radius:5px}
+/* card 风格正文只放大码，不放 URL 文字（名称在 chip 上；minimal 列表风格自行放开 .link-text） */
+.link-text{display:none}
+/* 非 http(s) 链接无码可嵌：兜底为居中文字（容器仍与码面同款白底描边） */
+.link-plain{
+  flex-direction:column;gap:4px;text-align:center;padding:10px;
+  /* 文字固定深色（容器恒白底，不随主题翻转） */
   color:#0f1b2d;
 }
-/* 内嵌二维码 tile：白底独立描边，直接可扫；整卡是 <a>，点它即新窗口跳转 */
-.link-qr{
-  flex:none;width:56px;height:56px;padding:3px;
-  background:#fff;border:1px solid var(--qr-line);border-radius:8px;
-}
-.link-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
-.link-name{font-weight:650;font-size:15px}
-.link-sub{font-size:11.5px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-plain .link-text{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.link-plain .link-name{font-weight:650;font-size:15px}
+.link-plain .link-sub{font-size:11.5px;color:#55637a;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{flex-basis:100%;color:var(--ink2);text-align:center}
 .empty code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-size:13.5px}
 
@@ -1372,9 +1368,8 @@ body{
   .qr{padding:10px;border-radius:12px}
   .qr img{border-radius:7px}
   .link{padding:12px;border-radius:14px;gap:9px}
-  .link-body{border-radius:12px;padding:10px;gap:12px}
-  .link-qr{width:72px;height:72px;border-radius:10px;padding:4px}
-  .link-name{font-size:17px}
+  .link-body{border-radius:12px;padding:10px}
+  .link-qr{border-radius:7px}
   .link-sub{font-size:12.5px}
   .lightbox{padding:20px}
   .lb-close{top:14px;right:16px}
@@ -1458,10 +1453,8 @@ function cssPopup() {
   .pop-card .chip svg{width:13px;height:13px}
   .pop-card .qr{padding:10px;border-radius:12px}
   .pop-card .qr img{border-radius:7px}
-  .pop-card .link-body{border-radius:12px;padding:10px;gap:12px}
-  .pop-card .link-qr{width:72px;height:72px;border-radius:10px;padding:4px}
-  .pop-card .link-name{font-size:17px}
-  .pop-card .link-sub{font-size:12.5px}
+  .pop-card .link-body{border-radius:12px;padding:10px}
+  .pop-card .link-qr{border-radius:7px}
 }`;
 }
 

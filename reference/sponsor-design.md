@@ -169,8 +169,19 @@ Markdown 原生图片语法**没法控制尺寸**。收款码原图动辄 1700×
 ```
 
 实测（390×900，agent-browser 量）：卡片 **310px**、左右边距 **40 / 40**、码面 **284px**、
-chip 字号 **12.5px**；链接卡用 `aspect-ratio:6/5` 保持桌面那份比例（284×237）。
+chip 字号 **12.5px**；链接卡主体同为大幅码面，窄屏下与码卡同款放大，不再单独控比例。
 改完记得重跑 `bash scripts/make-samples.sh` —— 文档里的窄屏样本必须跟着更新。
+
+### 链接卡与码卡同构（2026-10-09）
+
+链接卡的卡壳与码卡同款（同宽 200px、同 3px accent 顶条、同 chip 头），
+**主体也改成同一款白底圆角容器**：内容是「链接地址现场生成的大幅二维码」
+（`qrSvgDataUri(url)` 的 data URI），与码卡同 padding / 描边 / 圆角，卡高自然对齐。
+URL 文字不放正文（名称已在 chip 上；整卡是 `<a>`，点哪都跳），
+`.link-text` 在 card 风格里 `display:none` —— **minimal 列表风格复用同一份 markup**，
+靠自己的 CSS 放开 `.link-text`（横排 44px 小码 + 名称 + 链接），别删节点。
+非 http(s) 链接无码可嵌：markup 落 `link-plain` 类，兜底居中显示名称+链接（容器仍白底）。
+React/Vue 组件是 card 单风格，走条件 markup（有码无文字节点），见 `render-react/vue.mjs`。
 
 ### 验收方法
 
