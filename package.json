@@ -8,7 +8,7 @@
       "skill": "iskill-qrcode",
       "repo": "aispin/iskill-qrcode",
       "path": "scripts/lib/qrcode.mjs",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "local": "scripts/lib/qrcode.mjs"
     },
     {

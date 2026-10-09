@@ -408,7 +408,7 @@ chip 字号 **12.5px**；链接卡用 `aspect-ratio:6/5` 保持桌面那份比�
 
 ## 依赖
 
-零三方依赖（Node ≥ 18 标准库）。图片压缩优先用 macOS 自带 `sips`；
+零三方依赖（Node ≥ 24 标准库）。图片压缩优先用 macOS 自带 `sips`；
 没有 `sips` 的环境原样拷贝，不阻断流程。
 
 文档样本的截图脚本 `scripts/shoot.mjs` 有**两个引擎，自动选**：
@@ -459,7 +459,7 @@ iskill-generate-sponsors/
 ## 依赖同步
 
 本仓库有 **5 个 vendored 共享副本**（锁定版本见 `package.json` 的 `iskillDeps`），**都不要手改**——
-去真源仓库改并升 `@iskill-version`，再用 iskill-dep-sync 同步回来（本机无该工具时按下面自举）：
+去真源仓库改并升 `@iskill-version`，再用 iskill-dep-sync 同步回来。本机未装该工具时，先安装：对 agent 说「请帮我安装 Skill：aispin/iskill-dep-sync」，或按下方自举命令现场拉取：
 
 | 副本 | 真源 |
 | --- | --- |
