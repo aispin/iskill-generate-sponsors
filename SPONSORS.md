@@ -11,12 +11,6 @@
 
 <p align="center"><sub>打开支付宝「扫一扫」 · 打开微信「扫一扫」 · <a href="https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4" rel="noopener noreferrer">PayPal</a> · 点击打开</sub></p>
 
-| 渠道 | 地址 |
-| --- | --- |
-| **支付宝** | 扫码（见上方二维码） |
-| **微信** | 扫码（见上方二维码） |
-| PayPal | [https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4](https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4) |
-
 中国内地用户推荐扫码（支付宝 / 微信）；海外用户推荐 PayPal。
 
 <p align="center"><sub>感谢每一份支持 · <a href="https://github.com/aispin/iskill-generate-sponsors">iskill-generate-sponsors</a></sub></p>

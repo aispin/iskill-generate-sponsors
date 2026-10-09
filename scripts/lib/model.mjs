@@ -6,10 +6,10 @@
  */
 export const GEN_URL = 'https://github.com/aispin/iskill-generate-sponsors';
 
-/** Markdown 产物（README 区块 / SPONSORS.md 表格）里的固定文案 */
+/** Markdown 产物（README 区块 / SPONSORS.md）里的固定文案 */
 export const MD = {
-  zh: { scan: '扫码（见上方二维码）', ch: '渠道', addr: '地址', thanks: '感谢每一份支持' },
-  en: { scan: 'Scan the QR code above', ch: 'Channel', addr: 'Link', thanks: 'Thanks for every bit of support' },
+  zh: { thanks: '感谢每一份支持' },
+  en: { thanks: 'Thanks for every bit of support' },
 };
 
 /** 界面文案。用户自定义文案（标题/标语/备注）另有 en 版本，见 buildModel。 */

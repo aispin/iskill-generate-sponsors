@@ -416,19 +416,6 @@ function linkText(l, lang) {
   return { label: l.label, tip: pick({ zh: '点击打开', en: 'Tap to open' }, lang) };
 }
 
-function linkTable(opt, qrList) {
-  const m = MD[opt.lang] || MD.zh;
-  const rows = [];
-  for (const q of qrList) rows.push(`| **${esc(qrText(q, opt.lang).label)}** | ${m.scan} |`);
-  for (const [key, info] of Object.entries(FUNDING_PLATFORMS)) {
-    const val = opt.links[key];
-    if (val) rows.push(`| ${info.label} | [${val}](${info.url(val)}) |`);
-  }
-  if (opt.links.paypal) rows.push(`| PayPal | [${opt.links.paypal}](${opt.links.paypal}) |`);
-  for (const l of opt.extraLinks) rows.push(`| ${esc(l.label)} | [${l.url}](${l.url}) |`);
-  return [`| ${m.ch} | ${m.addr} |`, '| --- | --- |', ...rows].join('\n');
-}
-
 function renderMarkdown(opt, qrList, { heading = true, links = [] } = {}) {
   const m = MD[opt.lang] || MD.zh;
   const L = [];
@@ -450,8 +437,6 @@ function renderMarkdown(opt, qrList, { heading = true, links = [] } = {}) {
     L.push('<p align="center"><sub>' + tips.join(' · ') + '</sub></p>');
     L.push('');
   }
-  L.push(linkTable(opt, qrList));
-  L.push('');
   const note = pick({ zh: opt.footerNote, en: opt.noteEn || opt.footerNote }, opt.lang);
   if (note) { L.push(note); L.push(''); }
   L.push(`<p align="center"><sub>${m.thanks} · <a href="${GEN_URL}">iskill-generate-sponsors</a></sub></p>`);
