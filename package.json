@@ -1,0 +1,43 @@
+{
+  "name": "iskill-generate-sponsors",
+  "private": true,
+  "type": "module",
+  "description": "收款码 → 一整套赞助页；scripts/lib 两个模块与 promo-page/assets 引擎三件套均为 vendored 副本（真源见 iskillDeps）",
+  "iskillDeps": [
+    {
+      "skill": "iskill-qrcode",
+      "repo": "aispin/iskill-qrcode",
+      "path": "scripts/lib/qrcode.mjs",
+      "version": "1.0.0",
+      "local": "scripts/lib/qrcode.mjs"
+    },
+    {
+      "skill": "iskill-crop-qrcode",
+      "repo": "aispin/iskill-crop-qrcode",
+      "path": "scripts/lib/qrcrop.mjs",
+      "version": "1.0.0",
+      "local": "scripts/lib/qrcrop.mjs"
+    },
+    {
+      "skill": "iskill-promo-page",
+      "repo": "aispin/iskill-promo-page",
+      "path": "templates/promo-page/assets/app.js",
+      "version": "1.0.0",
+      "local": "promo-page/assets/app.js"
+    },
+    {
+      "skill": "iskill-promo-page",
+      "repo": "aispin/iskill-promo-page",
+      "path": "templates/promo-page/assets/style.css",
+      "version": "1.0.0",
+      "local": "promo-page/assets/style.css"
+    },
+    {
+      "skill": "iskill-promo-page",
+      "repo": "aispin/iskill-promo-page",
+      "path": "templates/promo-page/assets/icons.js",
+      "version": "1.0.0",
+      "local": "promo-page/assets/icons.js"
+    }
+  ]
+}

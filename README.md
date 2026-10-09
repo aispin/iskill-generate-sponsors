@@ -71,3 +71,5 @@ Open Collective / Polar / Buy Me a Coffee / IssueHunt / thanks.dev），
 
 <p align="center"><sub>感谢每一份支持 · <a href="https://github.com/aispin/iskill-generate-sponsors">iskill-generate-sponsors</a></sub></p>
 <!-- sponsors:end -->
+
+> 本仓库 `scripts/lib/qrcode.mjs`、`scripts/lib/qrcrop.mjs` 与 `promo-page/assets` 引擎三件套为 vendored 副本（真源与同步方式见 SKILL.md「依赖同步」节与 `package.json` 的 `iskillDeps`）。

@@ -455,3 +455,20 @@ iskill-generate-sponsors/
 ├── SponsorCard.jsx/.vue    本仓库自身生成的组件（示例产物）
 └── .github/                本仓库自身作为示例：FUNDING.yml + sponsor/ 收款码
 ```
+
+## 依赖同步
+
+本仓库有 **5 个 vendored 共享副本**（锁定版本见 `package.json` 的 `iskillDeps`），**都不要手改**——
+去真源仓库改并升 `@iskill-version`，再用 iskill-dep-sync 同步回来（本机无该工具时按下面自举）：
+
+| 副本 | 真源 |
+| --- | --- |
+| `scripts/lib/qrcode.mjs` | [iskill-qrcode](https://github.com/aispin/iskill-qrcode) |
+| `scripts/lib/qrcrop.mjs` | [iskill-crop-qrcode](https://github.com/aispin/iskill-crop-qrcode) |
+| `promo-page/assets/{app.js,style.css,icons.js}` | [iskill-promo-page](https://github.com/aispin/iskill-promo-page) |
+
+```bash
+T="$HOME/.workbuddy/skills/iskill-dep-sync/scripts/skill-deps.mjs"
+[ -f "$T" ] || { TMP="$(mktemp -d)"; curl -fsSL "https://raw.githubusercontent.com/aispin/iskill-dep-sync/HEAD/scripts/skill-deps.mjs" -o "$TMP/skill-deps.mjs"; T="$TMP/skill-deps.mjs"; }
+node "$T" check "$(pwd)"     # 漂移检测；node "$T" sync "$(pwd)" 恢复/升级；node "$T" env "$(pwd)" 冷启动自检
+```
