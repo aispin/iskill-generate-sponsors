@@ -99,6 +99,11 @@ export function buildModel(opt, qrList, links) {
       label: { zh: q.label, en: q.labelEn || q.label },
       tip:   { zh: q.tip,   en: q.tipEn   || q.tip },
     })),
-    links: links.map(l => ({ label: l.label, sub: l.sub, url: l.url, accent: l.accent, qr: l.qr || null })),
+    links: links.map(l => ({
+      label: l.label, sub: l.sub, url: l.url, accent: l.accent,
+      // 二维码：默认引用落盘的 SVG 文件（Pages 镜像口径，与 qr.src 同基准）；
+      // --standalone 仍内嵌 data URI，保「发给人就能看」的单文件形态
+      qr: l.qr ? (opt.standalone ? l.qr : `${opt.pagesImgBase}/${l.svgFile}`) : null,
+    })),
   };
 }

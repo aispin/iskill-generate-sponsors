@@ -6,10 +6,10 @@
 
 <!-- sponsors:start -->
 <p align="center">
-  <img src=".github/sponsor/alipay.jpg" width="160" alt="支付宝收款码">&nbsp;&nbsp;&nbsp;<img src=".github/sponsor/wechat.jpg" width="160" alt="微信收款码">
+  <img src=".github/sponsor/alipay.jpg" width="160" alt="支付宝收款码">&nbsp;&nbsp;&nbsp;<img src=".github/sponsor/wechat.jpg" width="160" alt="微信收款码">&nbsp;&nbsp;&nbsp;<a href="https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4" rel="noopener noreferrer"><img src=".github/sponsor/link-paypal.svg" width="160" alt="PayPal二维码"></a>
 </p>
 
-<p align="center"><sub>打开支付宝「扫一扫」 · 打开微信「扫一扫」</sub></p>
+<p align="center"><sub>打开支付宝「扫一扫」 · 打开微信「扫一扫」 · <a href="https://www.paypal.com/ncp/payment/SN6RMEF7FNKU4" rel="noopener noreferrer">PayPal</a> · 点击打开</sub></p>
 
 | 渠道 | 地址 |
 | --- | --- |

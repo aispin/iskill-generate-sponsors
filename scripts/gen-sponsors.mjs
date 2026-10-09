@@ -393,15 +393,27 @@ function renderFundingYml(opt, qrList) {
   return L.join('\n') + '\n';
 }
 
-function mdImageRow(qrList, opt, indent = '') {
+function mdImageRow(qrList, opt, links = [], indent = '') {
+  const w = qrList[0]?.mdWidth || 160;
   const cells = qrList.map(q => {
     const src = `${opt.imgBase}/${q.destName}`;
     const { label } = qrText(q, opt.lang);
     return `<img src="${src}" width="${q.mdWidth}" alt="${esc(label)}收款码">`;
   });
+  // 外链码（PayPal 等）：SVG 落盘文件，整图套 <a> 可点；与收款码并排成一行
+  for (const l of links) {
+    if (!l.svgFile) continue;
+    const { label } = (() => { const t = linkText(l, opt.lang); return { label: t.label }; })();
+    cells.push(`<a href="${esc(l.url)}" rel="noopener noreferrer"><img src="${opt.imgBase}/${l.svgFile}" width="${w}" alt="${esc(label)}二维码"></a>`);
+  }
   // 间距用 &nbsp; 且**不单独占一行** —— 独占一行的裸实体在部分 Markdown 渲染器里
   // 会被包成 <p>，从而提前闭合外层 <p align="center">，两张码就变成上下堆叠。
   return `${indent}<p align="center">\n${indent}  ${cells.join('&nbsp;&nbsp;&nbsp;')}\n${indent}</p>`;
+}
+
+/** 外链在指定语言下的展示名（渠道名基本不翻译，结构对齐 qrText） */
+function linkText(l, lang) {
+  return { label: l.label, tip: pick({ zh: '点击打开', en: 'Tap to open' }, lang) };
 }
 
 function linkTable(opt, qrList) {
@@ -417,7 +429,7 @@ function linkTable(opt, qrList) {
   return [`| ${m.ch} | ${m.addr} |`, '| --- | --- |', ...rows].join('\n');
 }
 
-function renderMarkdown(opt, qrList, { heading = true } = {}) {
+function renderMarkdown(opt, qrList, { heading = true, links = [] } = {}) {
   const m = MD[opt.lang] || MD.zh;
   const L = [];
   L.push(opt.markStart);
@@ -427,10 +439,15 @@ function renderMarkdown(opt, qrList, { heading = true } = {}) {
     L.push(pick({ zh: opt.tagline, en: opt.taglineEn || opt.tagline }, opt.lang));
     L.push('');
   }
-  if (qrList.length) {
-    L.push(mdImageRow(qrList, opt));
+  const imgLinks = links.filter(l => l.svgFile);
+  if (qrList.length || imgLinks.length) {
+    L.push(mdImageRow(qrList, opt, imgLinks));
     L.push('');
-    L.push('<p align="center"><sub>' + qrList.map(q => esc(qrText(q, opt.lang).tip)).join(' · ') + '</sub></p>');
+    const tips = [
+      ...qrList.map(q => esc(qrText(q, opt.lang).tip)),
+      ...imgLinks.map(l => { const t = linkText(l, opt.lang); return `<a href="${esc(l.url)}" rel="noopener noreferrer">${esc(t.label)}</a> · ${esc(t.tip)}`; }),
+    ];
+    L.push('<p align="center"><sub>' + tips.join(' · ') + '</sub></p>');
     L.push('');
   }
   L.push(linkTable(opt, qrList));
@@ -451,7 +468,7 @@ function fundingBody(opt, qrList) {
     .trim();
 }
 
-function renderStandaloneMd(opt, qrList) {
+function renderStandaloneMd(opt, qrList, links = []) {
   const L = [];
   L.push(`# ${pick({ zh: opt.title, en: opt.titleEn || opt.title }, opt.lang)}`);
   L.push('');
@@ -459,7 +476,7 @@ function renderStandaloneMd(opt, qrList) {
   L.push('');
   L.push(`下面 \`${opt.markStart}\` 与 \`${opt.markEnd}\` 之间的内容，可以整段复制进你的 README 或任意 Markdown 文档。`);
   L.push('');
-  L.push(renderMarkdown(opt, qrList, { heading: false }));
+  L.push(renderMarkdown(opt, qrList, { heading: false, links }));
   L.push('');
   L.push('---');
   L.push('');
@@ -498,15 +515,37 @@ function renderLinks(opt) {
   const items = [];
   for (const [key, info] of Object.entries(FUNDING_PLATFORMS)) {
     const val = opt.links[key];
-    if (val) items.push({ label: info.label, sub: val, url: info.url(val), accent: info.accent });
+    if (val) items.push({ key, label: info.label, sub: val, url: info.url(val), accent: info.accent });
   }
   if (opt.links.paypal) {
-    items.push({ label: 'PayPal', sub: opt.links.paypal.replace(/^https?:\/\//, ''), url: opt.links.paypal, accent: '#0070BA' });
+    items.push({ key: 'paypal', label: 'PayPal', sub: opt.links.paypal.replace(/^https?:\/\//, ''), url: opt.links.paypal, accent: '#0070BA' });
   }
-  for (const l of opt.extraLinks) items.push({ label: l.label, sub: l.url.replace(/^https?:\/\//, ''), url: l.url, accent: opt.accent });
+  for (const l of opt.extraLinks) items.push({ key: slug(l.label), label: l.label, sub: l.url.replace(/^https?:\/\//, ''), url: l.url, accent: opt.accent });
   // 网址类外链内嵌二维码：可扫（手机相机）也可点（整卡即链接，新窗口打开）；非 http(s) 不生成
   for (const it of items) it.qr = /^https?:\/\//i.test(it.url) ? qrSvgDataUri(it.url, { margin: 2 }) : null;
   return items;
+}
+
+/**
+ * 外链二维码落盘：data URI 之外**再写一份 SVG 文件**（link-<key>.svg），
+ * .github/sponsor/（README / Markdown 引用）与 assets/sponsor/（Pages 镜像）各一份。
+ * 网页 / 组件 / embed 的引用也随之从 data URI 换成文件路径（--standalone 仍内嵌，保单文件）。
+ * SVG 矢量无限清晰且只有 2-3KB；GitHub 的 camo 代理对 <img src=".svg"> 正常渲染。
+ */
+function writeLinkSvgs(links, opt, destDir, pagesDir, mirror) {
+  for (const l of links) {
+    if (!l.qr) continue;
+    const svg = Buffer.from(String(l.qr).split(',')[1] || '', 'base64').toString('utf8');
+    if (!svg.startsWith('<svg')) continue;
+    l.svgFile = `link-${l.key}.svg`;
+    if (opt.dryRun) continue;
+    fs.mkdirSync(destDir, { recursive: true });
+    fs.writeFileSync(path.join(destDir, l.svgFile), svg);
+    if (mirror) {
+      fs.mkdirSync(pagesDir, { recursive: true });
+      fs.writeFileSync(path.join(pagesDir, l.svgFile), svg);
+    }
+  }
 }
 
 function dataUri(file, mime) {
@@ -1668,14 +1707,16 @@ function main() {
   }
 
   // 一份数据喂三种产物 —— HTML / React / Vue 必须严格同源，否则样本会对不上
-  const model = buildModel(opt, qrList, renderLinks(opt));
+  const links = renderLinks(opt);
+  writeLinkSvgs(links, opt, destDir, pagesDir, mirror);
+  const model = buildModel(opt, qrList, links);
 
   // --mode embed：只产出「可嵌进任意页面的自包含片段」+ 图片，不写页面/README/FUNDING
   if (opt.mode === 'embed') return finishEmbed(opt, qrList, model, destDir, pagesDir);
 
   const funding = renderFundingYml(opt, qrList);
-  const mdBlock = renderMarkdown(opt, qrList);
-  const sponsorsMd = renderStandaloneMd(opt, qrList);
+  const mdBlock = renderMarkdown(opt, qrList, { links });
+  const sponsorsMd = renderStandaloneMd(opt, qrList, links);
   const html = renderHtml(opt, qrList, model);
   const react = opt.noComponents ? null : renderReact(opt, model);
   const vue = opt.noComponents ? null : renderVue(opt, model);
